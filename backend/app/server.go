@@ -6,6 +6,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
+    "github.com/Mire0726/unibox/backend/infra/firebase"
+    "github.com/Mire0726/unibox/backend/usecase/user"
 )
 
 
@@ -26,6 +28,9 @@ func Serve(addr string) {
         return c.String(http.StatusOK, "Welcome to unibox")
     })
     /* ===== サーバの起動 ===== */
+    firebase.InitFirebase()
+
+	http.HandleFunc("/verifyGoogleToken", user.VerifyGoogleIDToken)
 
     log.Printf("Server running on %s", addr)
     if err := e.Start(addr); err != nil {
