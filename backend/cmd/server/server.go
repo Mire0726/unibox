@@ -1,13 +1,16 @@
-package app
+package server
 
 import (
 	"log"
 	"net/http"
 
+	"github.com/Mire0726/unibox/backend/app/handlers"
+	"github.com/Mire0726/unibox/backend/app/usecase"
+	domain "github.com/Mire0726/unibox/backend/domain/repository"
+	"github.com/Mire0726/unibox/backend/infrastructure/firebase"
+	db "github.com/Mire0726/unibox/backend/infrastructure/mysql"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
-    "github.com/Mire0726/unibox/backend/infra/firebase"
-    "github.com/Mire0726/unibox/backend/usecase/user"
 )
 
 
@@ -27,13 +30,17 @@ func Serve(addr string) {
     e.GET("/", func(c echo.Context) error {
         return c.String(http.StatusOK, "Welcome to unibox")
     })
+    
+	http.HandleFunc("/api/login", authHandler.Login)
+
     /* ===== サーバの起動 ===== */
-    firebase.InitFirebase()
-
-	http.HandleFunc("/verifyGoogleToken", user.VerifyGoogleIDToken)
-
     log.Printf("Server running on %s", addr)
     if err := e.Start(addr); err != nil {
         log.Fatalf("Failed to start server: %v", err)
     }
+     // データベース接続の確認
+	if db.Conn == nil {
+		log.Fatal("Database connection is not initialized")
+	}
+
 }
