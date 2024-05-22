@@ -14,3 +14,45 @@ paths:
       responses:
         "200":
           description: "ユーザーリストの取得に成功しました"
+  /signIn:
+    post:
+      tags:
+        - user
+      summary: "ログイン"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: "ログインに成功しました"
+        "400":
+          description: "ログインに失敗しました"
+  /signUp:
+    post:
+      tags:
+        - user
+      summary: "新規登録"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: "新規登録に成功しました"
+        "400":
+          description: "新規登録に失敗しました"

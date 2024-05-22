@@ -31,6 +31,7 @@ const driverName = "mysql"
 var Conn *sql.DB
 
 func ConnectToDB() (*sql.DB, error) {
+	fmt.Println("Connecting to the database...")
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Error loading .env file: %v", err) // エラーメッセージに詳細を追加
 	}

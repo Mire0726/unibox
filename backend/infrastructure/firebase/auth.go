@@ -1,51 +1,353 @@
 package firebase
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
 
-	firebase "firebase.google.com/go/v4"
-	"firebase.google.com/go/v4/auth"
-	domain "github.com/Mire0726/unibox/backend/domain/model"
-	"google.golang.org/api/option"
+	"firebase.google.com/go/auth"
+
+	"github.com/Mire0726/unibox/backend/config"
+	"github.com/Mire0726/unibox/backend/internal/cerror"
+	"github.com/Mire0726/unibox/backend/pkg/log"
 )
 
-type FirebaseAuth struct {
-    App        *firebase.App
-    AuthClient *auth.Client  // Firebase Authenticationクライアント
+type FirebaseAuth interface {
+	SetCustomClaim(ctx context.Context, uid, orderID, storeID string) error
+	SignUpWithEmailPassword(ctx context.Context, email, password string) (*SignUpResponse, error)
+	SignInWithEmailPassword(ctx context.Context, email, password string) (*SignInResponse, error)
+	SendPasswordResetEmail(ctx context.Context, email string) (*SendPasswordResetEmailResponse, error)
+	VerifyPasswordResetCode(ctx context.Context, oobCode string) (*VerifyPasswordResetCodeResponse, error)
+	ConfirmPasswordReset(ctx context.Context, oobCode, newPassword string) (*ConfirmPasswordResetResponse, error)
 }
 
-func NewFirebaseAuth(saPath string) (*FirebaseAuth, error) {
-    opt := option.WithCredentialsFile(saPath)
-    app, err := firebase.NewApp(context.Background(), nil, opt)
-    if err != nil {
-        return nil, err
-    }
-    authClient, err := app.Auth(context.Background())
-    if err != nil {
-        return nil, err
-    }
-    return &FirebaseAuth{App: app, AuthClient: authClient}, nil
+type Error struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
-func (fa *FirebaseAuth) Authenticate(ctx context.Context, email, password string) (*domain.User, error) {
-    // Firebase Authenticationを使用してユーザーを認証する
-    userRecord, err := fa.AuthClient.GetUserByEmail(ctx, email)
-    if err != nil {
-        return nil, err
-    }
-    // デモのため、パスワードの検証は省略しますが、通常はサインインメソッドを使用して行います
-
-    user := &domain.User{
-        ID:    userRecord.UID,
-        Email: userRecord.Email,
-    }
-    return user, nil
+type FirebaseAPIError struct {
+	Error Error `json:"error"`
 }
 
-func (fa *FirebaseAuth) CreateToken(ctx context.Context, userID string) (string, error) {
-    token, err := fa.AuthClient.CustomToken(ctx, userID)
-    if err != nil {
-        return "", err
-    }
-    return token, nil
+func (c *AuthClient) readErr(res io.ReadCloser) (*FirebaseAPIError, error) {
+	body, err := io.ReadAll(res)
+	if err != nil {
+		return nil, cerror.Wrap(err, "firebase", cerror.WithIOCode())
+	}
+
+	firebaseAPIError := &FirebaseAPIError{}
+	if err := json.Unmarshal(body, &firebaseAPIError); err != nil {
+		return nil, cerror.Wrap(err, "firebase", cerror.WithEncodingJSONCode())
+	}
+
+	return firebaseAPIError, nil
+}
+
+type AuthClient struct {
+	client *auth.Client
+	logger *log.Logger
+}
+
+func NewClient(ctx context.Context, logger *log.Logger) (*AuthClient, error) {
+	app, err := initializeApp(ctx)
+	if err != nil {
+		return nil, cerror.Wrap(err, "firebase")
+	}
+
+	client, err := app.Auth(ctx)
+	if err != nil {
+		return nil, cerror.Wrap(err, "firebase", cerror.WithFirebaseCode())
+	}
+
+	return &AuthClient{
+		client,
+		logger,
+	}, nil
+}
+
+func NewClientWithoutLogger(ctx context.Context) (*auth.Client, error) {
+	app, err := initializeApp(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := app.Auth(ctx)
+	if err != nil {
+		return nil, cerror.Wrap(err, "firebase", cerror.WithFirebaseCode())
+	}
+
+	return client, nil
+}
+
+func (c *AuthClient) SetCustomClaim(ctx context.Context, uid, orderID, storeID string) error {
+	claims := map[string]interface{}{
+		"orderID": orderID,
+		"storeID": storeID,
+	}
+	if err := c.client.SetCustomUserClaims(ctx, uid, claims); err != nil {
+		c.logger.Error("Failed to set custom claims", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return cerror.Wrap(err, "firebase", cerror.WithFirebaseCode())
+	}
+
+	return nil
+}
+
+func (c *AuthClient) SetManagerCustomClaim(ctx context.Context, uid, managerID, role string) error {
+	claims := map[string]interface{}{
+		"managerID": managerID,
+		"role":      role,
+	}
+	if err := c.client.SetCustomUserClaims(ctx, uid, claims); err != nil {
+		c.logger.Error("Failed to set custom claims", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return cerror.Wrap(err, "firebase", cerror.WithFirebaseCode())
+	}
+
+	return nil
+}
+
+type signUpRequest struct {
+	ReturnSecureToken bool `json:"returnSecureToken"`
+}
+
+type AnonymousUser struct {
+	Kind         string `json:"kind"`
+	IDToken      string `json:"idToken"`
+	RefreshToken string `json:"refreshToken"`
+	ExpiresIn    string `json:"expiresIn"`
+	LocalID      string `json:"localID"`
+}
+
+func (c *AuthClient) CreateAnonymousUser(ctx context.Context) (*AnonymousUser, error) {
+	firebaseAPIKey := config.GetEnv().FirebaseAPIKey
+
+	reqBody := &signUpRequest{
+		ReturnSecureToken: true,
+	}
+
+	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=%s", firebaseAPIKey)
+
+	anonymousUser := &AnonymousUser{}
+	if err := c.callPost(ctx, url, reqBody, &anonymousUser); err != nil {
+		c.logger.Error("Failed to post", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return nil, err
+	}
+
+	return anonymousUser, nil
+}
+
+type signUpRequestWithEmailPassword struct {
+	Email             string `json:"email"`
+	Password          string `json:"password"`
+	ReturnSecureToken bool   `json:"returnSecureToken"`
+}
+
+type SignUpResponse struct {
+	IDToken      string `json:"idToken"`
+	Email        string `json:"email"`
+	RefreshToken string `json:"refreshToken"`
+	ExpiresIn    string `json:"expiresIn"`
+	LocalID      string `json:"localId"`
+}
+
+func (c *AuthClient) SignUpWithEmailPassword(ctx context.Context, email, password string) (*SignUpResponse, error) {
+	firebaseAPIKey := config.GetEnv().FirebaseAPIKey
+
+	reqBody := &signUpRequestWithEmailPassword{
+		Email:             email,
+		Password:          password,
+		ReturnSecureToken: true,
+	}
+
+	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=%s", firebaseAPIKey)
+
+	signUpResponse := &SignUpResponse{}
+	if err := c.callPost(ctx, url, reqBody, &signUpResponse); err != nil {
+		c.logger.Error("Failed to post", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return nil, err
+	}
+
+	return signUpResponse, nil
+}
+
+type signInRequestWithEmailPassword struct {
+	Email             string `json:"email"`
+	Password          string `json:"password"`
+	ReturnSecureToken bool   `json:"returnSecureToken"`
+}
+
+type SignInResponse struct {
+	IDToken      string `json:"idToken"`
+	Email        string `json:"email"`
+	RefreshToken string `json:"refreshToken"`
+	ExpiresIn    string `json:"expiresIn"`
+	LocalID      string `json:"localId"`
+	Registered   bool   `json:"registered"`
+}
+
+func (c *AuthClient) SignInWithEmailPassword(ctx context.Context, email, password string) (*SignInResponse, error) {
+	firebaseAPIKey := config.GetEnv().FirebaseAPIKey
+
+	reqBody := signInRequestWithEmailPassword{
+		Email:             email,
+		Password:          password,
+		ReturnSecureToken: true,
+	}
+
+	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=%s", firebaseAPIKey)
+
+	signInResponse := &SignInResponse{}
+	if err := c.callPost(ctx, url, reqBody, &signInResponse); err != nil {
+		c.logger.Error("Failed to post", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return nil, err
+	}
+
+	return signInResponse, nil
+}
+
+type sendPasswordResetEmailRequest struct {
+	Email       string `json:"email"`
+	RequestType string `json:"requestType"`
+}
+
+type SendPasswordResetEmailResponse struct {
+	Email string `json:"email"`
+}
+
+func (c *AuthClient) SendPasswordResetEmail(ctx context.Context, email string) (*SendPasswordResetEmailResponse, error) {
+	firebaseAPIKey := config.GetEnv().FirebaseAPIKey
+
+	reqBody := &sendPasswordResetEmailRequest{
+		Email:       email,
+		RequestType: "PASSWORD_RESET",
+	}
+
+	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=%s", firebaseAPIKey)
+
+	sendPasswordResetEmailResponse := &SendPasswordResetEmailResponse{}
+	if err := c.callPost(ctx, url, reqBody, &sendPasswordResetEmailResponse); err != nil {
+		c.logger.Error("Failed to post", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return nil, err
+	}
+
+	return sendPasswordResetEmailResponse, nil
+}
+
+type verifyPasswordResetCodeRequest struct {
+	OobCode string `json:"oobCode"`
+}
+
+type VerifyPasswordResetCodeResponse struct {
+	Email       string `json:"email"`
+	RequestType string `json:"requestType"`
+}
+
+func (c *AuthClient) VerifyPasswordResetCode(ctx context.Context, oobCode string) (*VerifyPasswordResetCodeResponse, error) {
+	firebaseAPIKey := config.GetEnv().FirebaseAPIKey
+
+	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:resetPassword?key=%s", firebaseAPIKey)
+
+	reqBody := &verifyPasswordResetCodeRequest{
+		OobCode: oobCode,
+	}
+
+	verifyPasswordResetCodeResponse := &VerifyPasswordResetCodeResponse{}
+	if err := c.callPost(ctx, url, reqBody, &verifyPasswordResetCodeResponse); err != nil {
+		c.logger.Error("Failed to post", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return nil, err
+	}
+
+	return verifyPasswordResetCodeResponse, nil
+}
+
+// TODO: パスワードは6文字以上であることを確認する
+type confirmPasswordResetRequest struct {
+	OobCode     string `json:"oobCode"`
+	NewPassword string `json:"newPassword"`
+}
+
+type ConfirmPasswordResetResponse struct {
+	Email       string `json:"email"`
+	RequestType string `json:"requestType"`
+}
+
+func (c *AuthClient) ConfirmPasswordReset(ctx context.Context, oobCode, newPassword string) (*ConfirmPasswordResetResponse, error) {
+	firebaseAPIKey := config.GetEnv().FirebaseAPIKey
+
+	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:resetPassword?key=%s", firebaseAPIKey)
+
+	reqBody := confirmPasswordResetRequest{
+		OobCode:     oobCode,
+		NewPassword: newPassword,
+	}
+
+	confirmPasswordResetResponse := &ConfirmPasswordResetResponse{}
+	if err := c.callPost(ctx, url, reqBody, &confirmPasswordResetResponse); err != nil {
+		c.logger.Error("Failed to post", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return nil, err
+	}
+
+	return confirmPasswordResetResponse, nil
+}
+
+func (c *AuthClient) callPost(ctx context.Context, url string, reqBody any, respBody interface{}) error {
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		c.logger.Error("Failed to encoding json", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return cerror.Wrap(err, "firebase", cerror.WithEncodingJSONCode())
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		c.logger.Error("Failed to create request", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return cerror.Wrap(err, "firebase", cerror.WithCreateExternalHTTPRequestCode())
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		c.logger.Error("Failed to do request", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return cerror.Wrap(err, "firebase", cerror.WithDoExternalHTTPRequestCode())
+	}
+
+	code := cerror.MapHTTPErrorToCode(resp.StatusCode)
+	if code != cerror.OK {
+		firebaseAPIError, err := c.readErr(resp.Body)
+		if err != nil {
+			return err
+		}
+		c.logger.Error(firebaseAPIError.Error.Message, log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return cerror.New(code.String(), cerror.WithCode(code))
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.logger.Error("Failed to read body", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return cerror.Wrap(err, "firebase", cerror.WithIOCode())
+	}
+
+	if err := json.Unmarshal(body, &respBody); err != nil {
+		c.logger.Error("Failed to unmarshal body", log.Fstring("package", "firebase"), log.Ferror(err))
+
+		return cerror.Wrap(err, "firebase", cerror.WithEncodingJSONCode())
+	}
+
+	return nil
 }
