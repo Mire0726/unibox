@@ -2,27 +2,19 @@ package firebase
 
 import (
 	"context"
-	"encoding/base64"
+	"fmt"
 
 	firebase "firebase.google.com/go"
-	"google.golang.org/api/option"
 
-	"github.com/Mire0726/unibox/backend/config"
 	"github.com/Mire0726/unibox/backend/internal/cerror"
 )
 
 func initializeApp(ctx context.Context) (*firebase.App, error) {
-	key := config.GetEnv().FirebaseServiceKey
-
-	jsonBytes, err := base64.StdEncoding.DecodeString(key)
+	app, err := firebase.NewApp(context.Background(), nil)
 	if err != nil {
-		return nil, cerror.Wrap(err, "Failed to initialize app", cerror.WithFirebaseCode())
+		return nil, cerror.Wrap(err, "firebase", cerror.WithInternalCode(), cerror.WithReasonCode(cerror.RC20001))
 	}
 
-	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsJSON(jsonBytes))
-	if err != nil {
-		return nil, cerror.Wrap(err, "Credentials is invalid", cerror.WithFirebaseCode())
-	}
-
+	fmt.Println("Firebase app initialized")
 	return app, nil
 }

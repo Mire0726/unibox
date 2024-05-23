@@ -14,11 +14,10 @@ paths:
       responses:
         "200":
           description: "ユーザーリストの取得に成功しました"
-  /signIn:
+  /signin:
     post:
-      tags:
-        - user
-      summary: "ログイン"
+      summary: Sign in to the application
+      description: Allows users to sign in using their email and password.
       requestBody:
         required: true
         content:
@@ -28,13 +27,64 @@ paths:
               properties:
                 email:
                   type: string
+                  format: email
+                  description: User's email
+                  example: user@example.com
                 password:
                   type: string
+                  description: User's password
+                  example: "yourpassword"
+              required:
+                - email
+                - password
       responses:
         "200":
-          description: "ログインに成功しました"
+          description: Successful sign in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Access token for the authenticated session
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                        description: User's unique identifier
+                      name:
+                        type: string
+                        description: User's full name
+              example:
+                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                user:
+                  id: 123
+                  name: John Doe
         "400":
-          description: "ログインに失敗しました"
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Description of the input error
+                    example: "invalid request parameters"
+        "401":
+          description: Unauthorized - Incorrect email or password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Explanation of the error
+                    example: "failed to sign in"
   /signUp:
     post:
       tags:

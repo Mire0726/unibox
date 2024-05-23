@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"log"
 	"os"
-	
+
 	"github.com/Mire0726/unibox/backend/cmd/server"
-	db "github.com/Mire0726/unibox/backend/infrastructure/mysql"
+	"github.com/Mire0726/unibox/backend/infrastructure/mysql"
 )
 
 func main() {
-	db, err := db.ConnectToDB()
+	db, err := mysql.ConnectToDB()
 	if err != nil {
-		log.Fatal("Could not initialize database:", err) 
+		log.Fatal("Could not initialize database:", err)
 	}
 
 	var defaultPort = "8080"

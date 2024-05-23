@@ -54,9 +54,3 @@ func (h *AuthHandler) SignUp(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, response)
 }
-
-// RegisterRoutes は認証関連のルートを登録します。
-func (h *AuthHandler) RegisterRoutes(e *echo.Echo) {
-	e.POST("/signin", h.SignIn)
-	e.POST("/signup", h.SignUp)
-}

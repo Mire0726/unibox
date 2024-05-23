@@ -4,13 +4,13 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
+
 	handler "github.com/Mire0726/unibox/backend/app/handlers"
 	"github.com/Mire0726/unibox/backend/app/usecase"
 	"github.com/Mire0726/unibox/backend/infrastructure/firebase"
-	db "github.com/Mire0726/unibox/backend/infrastructure/mysql"
 	"github.com/Mire0726/unibox/backend/pkg/log"
-	"github.com/labstack/echo/v4"
-	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 func Serve(addr string) {
@@ -48,9 +48,4 @@ func Serve(addr string) {
 	if err := e.Start(addr); err != nil {
 		logger.Error("Failed to start server", log.Ferror(err))
 	}
-	// データベース接続の確認
-	if db.Conn == nil {
-		logger.Error("Database connection is not initialized")
-	}
-
 }

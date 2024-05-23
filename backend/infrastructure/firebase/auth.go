@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 
 	"firebase.google.com/go/auth"
 
 	"github.com/Mire0726/unibox/backend/config"
 	"github.com/Mire0726/unibox/backend/internal/cerror"
 	"github.com/Mire0726/unibox/backend/pkg/log"
+	"github.com/joho/godotenv"
 )
 
 type FirebaseAuth interface {
@@ -60,6 +62,7 @@ func NewClient(ctx context.Context, logger *log.Logger) (*AuthClient, error) {
 
 	client, err := app.Auth(ctx)
 	if err != nil {
+		logger.Error("Failed to get auth client", log.Fstring("package", "firebase"), log.Ferror(err))
 		return nil, cerror.Wrap(err, "firebase", cerror.WithFirebaseCode())
 	}
 
@@ -123,25 +126,6 @@ type AnonymousUser struct {
 	LocalID      string `json:"localID"`
 }
 
-func (c *AuthClient) CreateAnonymousUser(ctx context.Context) (*AnonymousUser, error) {
-	firebaseAPIKey := config.GetEnv().FirebaseAPIKey
-
-	reqBody := &signUpRequest{
-		ReturnSecureToken: true,
-	}
-
-	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=%s", firebaseAPIKey)
-
-	anonymousUser := &AnonymousUser{}
-	if err := c.callPost(ctx, url, reqBody, &anonymousUser); err != nil {
-		c.logger.Error("Failed to post", log.Fstring("package", "firebase"), log.Ferror(err))
-
-		return nil, err
-	}
-
-	return anonymousUser, nil
-}
-
 type signUpRequestWithEmailPassword struct {
 	Email             string `json:"email"`
 	Password          string `json:"password"`
@@ -193,7 +177,10 @@ type SignInResponse struct {
 }
 
 func (c *AuthClient) SignInWithEmailPassword(ctx context.Context, email, password string) (*SignInResponse, error) {
-	firebaseAPIKey := config.GetEnv().FirebaseAPIKey
+	if err := godotenv.Load("../.env"); err != nil {
+		log.Error("Error loading .env file: %v")
+	}
+	firebaseAPIKey := os.Getenv("FIREBASE_API_KEY")
 
 	reqBody := signInRequestWithEmailPassword{
 		Email:             email,
