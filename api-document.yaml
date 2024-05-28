@@ -1,10 +1,11 @@
 openapi: "3.0.2"
 info:
-  title: unibox API"
+  title: "unibox API"
   version: "2.0.0"
 servers:
   - url: "http://localhost:8080"
   - url: "http://localhost:3000"
+
 paths:
   /users:
     get:
@@ -14,10 +15,12 @@ paths:
       responses:
         "200":
           description: "ユーザーリストの取得に成功しました"
-  /signin:
+  /signIn:
     post:
-      summary: Sign in to the application
-      description: Allows users to sign in using their email and password.
+      tags:
+        - user
+      summary: "Sign in to the application"
+      description: "Allows users to sign in using their email and password."
       requestBody:
         required: true
         content:
@@ -28,18 +31,18 @@ paths:
                 email:
                   type: string
                   format: email
-                  description: User's email
-                  example: user@example.com
+                  description: "User's email"
+                  example: "user@example.com"
                 password:
                   type: string
-                  description: User's password
+                  description: "User's password"
                   example: "yourpassword"
               required:
                 - email
                 - password
       responses:
         "200":
-          description: Successful sign in
+          description: "Successful sign in"
           content:
             application/json:
               schema:
@@ -47,35 +50,26 @@ paths:
                 properties:
                   token:
                     type: string
-                    description: Access token for the authenticated session
+                    description: "Access token for the authenticated session"
                   user:
                     type: object
                     properties:
                       id:
                         type: integer
                         format: int64
-                        description: User's unique identifier
+                        description: "User's unique identifier"
                       name:
                         type: string
-                        description: User's full name
+                        description: "User's full name"
               example:
-                token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+                token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                 user:
                   id: 123
-                  name: John Doe
+                  name: "John Doe"
         "400":
-          description: Invalid request parameters
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    description: Description of the input error
-                    example: "invalid request parameters"
+          $ref: "#/components/responses/BadRequest"
         "401":
-          description: Unauthorized - Incorrect email or password
+          description: "Unauthorized - Incorrect email or password"
           content:
             application/json:
               schema:
@@ -83,13 +77,14 @@ paths:
                 properties:
                   error:
                     type: string
-                    description: Explanation of the error
+                    description: "Explanation of the error"
                     example: "failed to sign in"
   /signUp:
     post:
       tags:
         - user
-      summary: "新規登録"
+      summary: "Sign up a new user"
+      description: "Allows a new user to sign up using their email and password."
       requestBody:
         required: true
         content:
@@ -99,10 +94,130 @@ paths:
               properties:
                 email:
                   type: string
+                  format: email
+                  description: "User's email"
+                  example: "newuser@example.com"
                 password:
                   type: string
+                  description: "User's password"
+                  example: "securepassword"
+              required:
+                - email
+                - password
       responses:
         "200":
-          description: "新規登録に成功しました"
+          description: "Successful sign up"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: "A success message"
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        format: int64
+                        description: "Newly created user's unique identifier"
+                      email:
+                        type: string
+                        description: "Email of the newly signed up user"
+              example:
+                message: "User successfully signed up"
+                user:
+                  id: 12345
+                  email: "newuser@example.com"
         "400":
-          description: "新規登録に失敗しました"
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /messages:
+    post:
+      tags:
+        - message
+      summary: "メッセージを投稿する"
+      description: "指定されたチャンネルにメッセージを投稿します。"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                channelId:
+                  type: string
+                  description: "The ID of the channel where the message is to be posted."
+                content:
+                  type: string
+                  description: "Content of the message."
+              required:
+                - channelId
+                - content
+      responses:
+        "201":
+          description: "Message created successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: "Confirmation that the message was posted successfully."
+                    example: "Message created successfully"
+        "400":
+          description: "Invalid request parameters"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Description of the input error"
+                    example: "Invalid request parameters"
+        "500":
+          description: "Internal server error - Failed to create message"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Description of the server error"
+                    example: "Failed to create message"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+  responses:
+    BadRequest:
+      description: "Invalid request parameters"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: "Description of the input error"
+                example: "invalid request parameters"
+    InternalServerError:
+      description: "Internal server error - Failed to sign up"
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                description: "Description of the server error"
+                example: "failed to sign up"

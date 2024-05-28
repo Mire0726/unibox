@@ -10,6 +10,8 @@ import (
 	handler "github.com/Mire0726/unibox/backend/app/handlers"
 	"github.com/Mire0726/unibox/backend/app/usecase"
 	"github.com/Mire0726/unibox/backend/infrastructure/firebase"
+	"github.com/Mire0726/unibox/backend/infrastructure/mysql"
+
 	"github.com/Mire0726/unibox/backend/pkg/log"
 )
 
@@ -40,8 +42,22 @@ func Serve(addr string) {
 
 	// AuthHandlerの初期化
 	authHandler := handler.NewAuthHandler(authUsecase)
-	e.POST("/signin", authHandler.SignIn)
-	e.POST("/signup", authHandler.SignUp)
+	e.POST("/signIn", authHandler.SignIn)
+	e.POST("/signUp", authHandler.SignUp)
+
+	// MessageRepositoryとMessageUsecaseの初期化
+	messageRepo := mysql.NewMessageRepository(mysql.Conn) // db は *sql.DB のインスタンス
+	messageUsecase := usecase.NewMessageUsecase(messageRepo, authUsecase)
+
+	// MessageHandlerの初期化
+	messageHandler := handler.NewMessageHandler(authUsecase, messageUsecase)
+	e.POST("/messages", func(c echo.Context) error {
+		// http.ResponseWriter と http.Request を取得
+		w := c.Response().Writer
+		r := c.Request()
+		messageHandler.PostMessage(w, r)
+		return nil
+	})
 
 	/* ===== サーバの起動 ===== */
 	logger.Info("Server running", log.Fstring("address", addr))

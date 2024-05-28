@@ -11,14 +11,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// NewMySQLDB は新しいMySQLデータベース接続を初期化します。
 func NewMySQLDB(dataSourceName string) *sql.DB {
 	db, err := sql.Open("mysql", dataSourceName)
 	if err != nil {
 		log.Fatalf("Could not connect to the database: %v", err)
 	}
 
-	// データベース接続を確認するためにPingを実行します。
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Could not ping to the database: %v", err)
 	}
@@ -32,10 +30,9 @@ var Conn *sql.DB
 
 func ConnectToDB() (*sql.DB, error) {
 	if err := godotenv.Load("../.env"); err != nil {
-		log.Fatalf("Error loading .env file: %v", err) // エラーメッセージに詳細を追加
+		log.Fatalf("Error loading .env file: %v", err)
 	}
 
-	log.Println("loaded .env file")
 	user := os.Getenv("MYSQL_USER")
 	password := os.Getenv("MYSQL_PASSWORD")
 	host := os.Getenv("MYSQL_HOST")
@@ -55,7 +52,6 @@ func ConnectToDB() (*sql.DB, error) {
 	if err := Conn.Ping(); err != nil {
 		log.Fatal("Unable to connect to the database:", err)
 	}
-	log.Println("Database connection established") // 成功ログ
 
 	return Conn, nil
 

@@ -24,13 +24,13 @@ func main() {
 	}
 	flag.Parse()
 
-	// サーバーの設定と起動
+
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("Listening on %s...\n", addr)
 	server.Serve(addr)
-	// データベース接続が確立されていることを確認
+
 	if db == nil {
-		log.Fatal("Database connection is nil in main") // エラーログ
+		log.Fatal("Database connection is nil in main") 
 	}
 
 }

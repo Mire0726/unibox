@@ -2,7 +2,6 @@ package firebase
 
 import (
 	"context"
-	"fmt"
 
 	firebase "firebase.google.com/go"
 
@@ -15,6 +14,5 @@ func initializeApp(ctx context.Context) (*firebase.App, error) {
 		return nil, cerror.Wrap(err, "firebase", cerror.WithInternalCode(), cerror.WithReasonCode(cerror.RC20001))
 	}
 
-	fmt.Println("Firebase app initialized")
 	return app, nil
 }

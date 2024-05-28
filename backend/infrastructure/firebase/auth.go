@@ -24,6 +24,7 @@ type FirebaseAuth interface {
 	SendPasswordResetEmail(ctx context.Context, email string) (*SendPasswordResetEmailResponse, error)
 	VerifyPasswordResetCode(ctx context.Context, oobCode string) (*VerifyPasswordResetCodeResponse, error)
 	ConfirmPasswordReset(ctx context.Context, oobCode, newPassword string) (*ConfirmPasswordResetResponse, error)
+	VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error)
 }
 
 type Error struct {
@@ -141,8 +142,10 @@ type SignUpResponse struct {
 }
 
 func (c *AuthClient) SignUpWithEmailPassword(ctx context.Context, email, password string) (*SignUpResponse, error) {
-	firebaseAPIKey := config.GetEnv().FirebaseAPIKey
-
+	if err := godotenv.Load("../.env"); err != nil {
+		c.logger.Error("Error loading .env file", log.Ferror(err))
+	}
+	firebaseAPIKey := os.Getenv("FIREBASE_API_KEY")
 	reqBody := &signUpRequestWithEmailPassword{
 		Email:             email,
 		Password:          password,
@@ -151,14 +154,18 @@ func (c *AuthClient) SignUpWithEmailPassword(ctx context.Context, email, passwor
 
 	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=%s", firebaseAPIKey)
 
-	signUpResponse := &SignUpResponse{}
-	if err := c.callPost(ctx, url, reqBody, &signUpResponse); err != nil {
-		c.logger.Error("Failed to post", log.Fstring("package", "firebase"), log.Ferror(err))
-
+	signUpResponse := new(SignUpResponse)
+	if err := c.callPost(ctx, url, reqBody, signUpResponse); err != nil {
 		return nil, err
 	}
 
-	return signUpResponse, nil
+	return &SignUpResponse{
+		IDToken: signUpResponse.IDToken,
+		LocalID: signUpResponse.LocalID,
+		Email:  signUpResponse.Email,
+		RefreshToken: signUpResponse.RefreshToken,
+		ExpiresIn: signUpResponse.ExpiresIn,
+	}, nil
 }
 
 type signInRequestWithEmailPassword struct {
@@ -178,11 +185,11 @@ type SignInResponse struct {
 
 func (c *AuthClient) SignInWithEmailPassword(ctx context.Context, email, password string) (*SignInResponse, error) {
 	if err := godotenv.Load("../.env"); err != nil {
-		log.Error("Error loading .env file: %v")
+		c.logger.Error("Error loading .env file", log.Ferror(err))
 	}
 	firebaseAPIKey := os.Getenv("FIREBASE_API_KEY")
 
-	reqBody := signInRequestWithEmailPassword{
+	reqBody := &signInRequestWithEmailPassword{
 		Email:             email,
 		Password:          password,
 		ReturnSecureToken: true,
@@ -190,14 +197,19 @@ func (c *AuthClient) SignInWithEmailPassword(ctx context.Context, email, passwor
 
 	url := fmt.Sprintf("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=%s", firebaseAPIKey)
 
-	signInResponse := &SignInResponse{}
-	if err := c.callPost(ctx, url, reqBody, &signInResponse); err != nil {
-		c.logger.Error("Failed to post", log.Fstring("package", "firebase"), log.Ferror(err))
-
+	signInResponse := new(SignInResponse)
+	if err := c.callPost(ctx, url, reqBody, signInResponse); err != nil {
 		return nil, err
 	}
 
-	return signInResponse, nil
+	return &SignInResponse{
+		IDToken: signInResponse.IDToken,
+		Email:  signInResponse.Email,
+		RefreshToken: signInResponse.RefreshToken,
+		ExpiresIn: signInResponse.ExpiresIn,
+		LocalID: signInResponse.LocalID,
+		Registered: signInResponse.Registered,
+	}, nil
 }
 
 type sendPasswordResetEmailRequest struct {
@@ -257,7 +269,6 @@ func (c *AuthClient) VerifyPasswordResetCode(ctx context.Context, oobCode string
 	return verifyPasswordResetCodeResponse, nil
 }
 
-// TODO: パスワードは6文字以上であることを確認する
 type confirmPasswordResetRequest struct {
 	OobCode     string `json:"oobCode"`
 	NewPassword string `json:"newPassword"`
@@ -337,4 +348,18 @@ func (c *AuthClient) callPost(ctx context.Context, url string, reqBody any, resp
 	}
 
 	return nil
+}
+
+func (c *AuthClient) VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error) {
+	token, err := c.client.VerifyIDToken(ctx, idToken)
+	if err != nil {
+		c.logger.Error("Failed to verify ID token", log.Fstring("package", "firebase"), log.Ferror(err))
+		return nil, cerror.Wrap(err, "firebase", cerror.WithUnauthorizedCode())
+	}
+
+	return token, nil
+}
+
+type VerifyTokenResponse struct {
+	ID string `json:"uid"`
 }

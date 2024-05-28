@@ -12,6 +12,7 @@ import (
 type AuthUsecase interface {
 	SignIn(ctx context.Context, email, password string) (*firebase.SignInResponse, error)
 	SignUp(ctx context.Context, email, password string) (*firebase.SignUpResponse, error)
+	VerifyToken(ctx context.Context, token string) (*firebase.VerifyTokenResponse, error)
 }
 
 // authUsecase は AuthUsecase の実装です。
@@ -43,4 +44,18 @@ func (uc *authUsecase) SignUp(ctx context.Context, email, password string) (*fir
 		return nil, cerror.Wrap(err, "usecase", cerror.WithFirebaseCode())
 	}
 	return response, nil
+}
+
+func (uc *authUsecase) VerifyToken(ctx context.Context, token string) (*firebase.VerifyTokenResponse, error) {
+    authToken, err := uc.authClient.VerifyIDToken(ctx, token)
+    if err != nil {
+        return nil, cerror.Wrap(err, "usecase", cerror.WithUnauthorizedCode())
+    }
+
+    // authTokenから必要な情報を取り出し、VerifyTokenResponseを作成
+    response := &firebase.VerifyTokenResponse{
+        ID: authToken.UID, 
+    }
+
+    return response, nil
 }
