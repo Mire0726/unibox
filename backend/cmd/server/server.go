@@ -20,7 +20,7 @@ func Serve(addr string) {
 	logger := log.New()
 
 	// e.Use(echomiddleware.Recover())
-	e.Use(echomiddleware.Logger())	
+	e.Use(echomiddleware.Logger())
 
 	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
 		Skipper:      echomiddleware.DefaultCORSConfig.Skipper,
@@ -55,6 +55,11 @@ func Serve(addr string) {
 	// MessageHandlerのPostMessage関数を直接ルーティングにマップする
 	e.POST("/messages", messageHandler.PostMessage)
 
+	channelRepo := mysql.NewChannelRepository(mysql.Conn)
+	channelUsecase := usecase.NewChannelUsecase(channelRepo, authUsecase)
+
+	channelHandler := handler.NewChannelHandler(authUsecase, channelUsecase)
+	e.POST("/channels", channelHandler.PostChannel)
 	/* ===== サーバの起動 ===== */
 	logger.Info("Server running", log.Fstring("address", addr))
 	if err := e.Start(addr); err != nil {

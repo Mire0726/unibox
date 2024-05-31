@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/Mire0726/unibox/backend/domain/model"
@@ -34,7 +33,6 @@ func (uc *MessageUsecase) Post(ctx context.Context, userID, channelID, content s
 		Content:   content,
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
-	fmt.Println(message.Content)
 
 	if err := uc.messageRepo.Insert(ctx, message); err != nil {
 		return err

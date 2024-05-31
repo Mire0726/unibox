@@ -5,7 +5,6 @@ info:
 servers:
   - url: "http://localhost:8080"
   - url: "http://localhost:3000"
-
 paths:
   /users:
     get:
@@ -158,6 +157,64 @@ paths:
               required:
                 - channelId
                 - content
+      responses:
+        "201":
+          description: "Channel created successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: "Confirmation that the message was posted successfully."
+                    example: "Message created successfully"
+        "400":
+          description: "Invalid request parameters"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Description of the input error"
+                    example: "Invalid request parameters"
+        "500":
+          description: "Internal server error - Failed to create channel"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Description of the server error"
+                    example: "Failed to create message"
+  /channels:
+    post:
+      tags:
+        - message
+      summary: "チャンネルを投稿する"
+      description: "指定されたチャンネルにを投稿します。"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                OrganizationId:
+                  type: string
+                  description: "The ID of the channel where the message is to be posted."
+                name:
+                  type: string
+                  description: "Name of the channel."
+              required:
+                - OrganizationlId
+                - name
       responses:
         "201":
           description: "Message created successfully"
