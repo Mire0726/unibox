@@ -45,14 +45,15 @@ func ConnectToDB() (*sql.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s&parseTime=%s&loc=%s",
 		user, password, host, port, database, charset, parseTime, loc)
 
-	Conn, err := sql.Open(driverName, dsn)
+	conn, err := sql.Open(driverName, dsn)
 	if err != nil {
 		log.Fatal("cannnot sql.Open", err)
 	}
-	if err := Conn.Ping(); err != nil {
+	if err := conn.Ping(); err != nil {
 		log.Fatal("Unable to connect to the database:", err)
 	}
+	Conn = conn
 
-	return Conn, nil
+	return conn, nil
 
 }

@@ -19,7 +19,8 @@ func Serve(addr string) {
 	e := echo.New()
 	logger := log.New()
 
-	e.Use(echomiddleware.Recover())
+	// e.Use(echomiddleware.Recover())
+	e.Use(echomiddleware.Logger())	
 
 	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
 		Skipper:      echomiddleware.DefaultCORSConfig.Skipper,
@@ -46,18 +47,13 @@ func Serve(addr string) {
 	e.POST("/signUp", authHandler.SignUp)
 
 	// MessageRepositoryとMessageUsecaseの初期化
-	messageRepo := mysql.NewMessageRepository(mysql.Conn) // db は *sql.DB のインスタンス
+	messageRepo := mysql.NewMessageRepository(mysql.Conn)
 	messageUsecase := usecase.NewMessageUsecase(messageRepo, authUsecase)
 
 	// MessageHandlerの初期化
 	messageHandler := handler.NewMessageHandler(authUsecase, messageUsecase)
-	e.POST("/messages", func(c echo.Context) error {
-		// http.ResponseWriter と http.Request を取得
-		w := c.Response().Writer
-		r := c.Request()
-		messageHandler.PostMessage(w, r)
-		return nil
-	})
+	// MessageHandlerのPostMessage関数を直接ルーティングにマップする
+	e.POST("/messages", messageHandler.PostMessage)
 
 	/* ===== サーバの起動 ===== */
 	logger.Info("Server running", log.Fstring("address", addr))

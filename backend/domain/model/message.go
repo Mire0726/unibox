@@ -1,8 +1,10 @@
 // domain/model/message.go
 package model
 
+import "github.com/google/uuid"
+
 type Message struct {
-    ID        string
+    ID        uuid.UUID
     ChannelID string
     UserID    string
     Content   string

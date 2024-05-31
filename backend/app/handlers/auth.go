@@ -7,19 +7,17 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// AuthHandler は認証に関するHTTPリクエストを処理します。
 type AuthHandler struct {
 	AuthUsecase usecase.AuthUsecase
 }
 
-// NewAuthHandler は新しいAuthHandlerインスタンスを生成します。
 func NewAuthHandler(authUsecase usecase.AuthUsecase) *AuthHandler {
 	return &AuthHandler{
 		AuthUsecase: authUsecase,
 	}
 }
 
-// SignIn はサインインリクエストを処理します。
+
 func (h *AuthHandler) SignIn(c echo.Context) error {
 	var req struct {
 		Email    string `json:"email"`
@@ -37,7 +35,6 @@ func (h *AuthHandler) SignIn(c echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
-// SignUp はサインアップリクエストを処理します。
 func (h *AuthHandler) SignUp(c echo.Context) error {
 	var req struct {
 		Email    string `json:"email"`

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Mire0726/unibox/backend/app/usecase"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 )
 
 type MessageHandler struct {
@@ -19,28 +19,32 @@ func NewMessageHandler(authUsecase usecase.AuthUsecase, messageUsecase *usecase.
 	}
 }
 
+type RequestMessage struct {
+	IDToken   string `json:"idToken"`
+	ChannelID string `json:"channelId"`
+	Content   string `json:"content"`
+}
+
 func (h *MessageHandler) PostMessage(c echo.Context) error {
-	// リクエストボディからデータを構造体にデコード
-	var req struct {
-		IDToken   string `json:"idToken"`
-		ChannelID string `json:"channelId"`
-		Content   string `json:"content"`
+	authID:=c.Request().Header.Get("Authorization")
+	if authID == "" {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Authorization token is required")
 	}
+
+	req := &RequestMessage{}
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
-	// IDトークンを検証して認証情報を取得
-	authInfo, err := h.AuthUsecase.VerifyToken(c.Request().Context(), req.IDToken)
+	authInfo, err := h.AuthUsecase.VerifyToken(c.Request().Context(), authID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
 	}
 
-	// メッセージを投稿
 	if err = h.MessageUsecase.Post(c.Request().Context(), authInfo.ID, req.ChannelID, req.Content); err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error - Failed to post message")
+
+		return err
 	}
 
-	// 成功した場合、作成されたメッセージのステータスをJSON形式で返す
 	return c.JSON(http.StatusCreated, map[string]string{"status": "Message posted successfully"})
 }
