@@ -20,7 +20,7 @@ export default function Login() {
         password: loginPassword,
       });
       localStorage.setItem("token", response.data.token);
-      router.push("/main");
+      router.push("/home");
     } catch (error) {
       console.error(error);
       alert("ログインに失敗しました。");
