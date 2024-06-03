@@ -1,4 +1,4 @@
 .env
+frontend/.next/cache
 frontend/node_modules
 backend/ServiceAccount.json
-frontend/.next
