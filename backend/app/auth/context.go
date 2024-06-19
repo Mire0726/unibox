@@ -11,12 +11,10 @@ type contextKey string
 
 var userTokenKey = contextKey("uerToken")
 
-// SetUserID はContextにユーザIDを保存します。
 func SetUserToken(ctx context.Context, userToken string) context.Context {
 	return context.WithValue(ctx, userTokenKey, userToken)
 }
 
-// GetUserIDFromContext ContextからユーザIDを取得する
 func GetUserTokenFromContext(ctx context.Context) string {
 	var userToken string
 	if ctx.Value(userTokenKey) != nil {

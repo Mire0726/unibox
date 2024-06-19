@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/Mire0726/unibox/backend/domain/model"
@@ -11,17 +12,20 @@ import (
 
 type Message interface {
 	Post(ctx context.Context, userID, channelID, content string) error
+	CreateMessagee(ctx context.Context, rawMsg []byte) error
 }
 
 type MessageUsecase struct {
-	messageRepo repository.MessageRepository
-	auth        AuthUsecase
+	MessageRepo repository.MessageRepository
+	Auth        AuthUsecase
+	Hub         *model.Hub
 }
 
-func NewMessageUsecase(messageRepo repository.MessageRepository, authUsecase AuthUsecase) *MessageUsecase {
+func NewMessageUsecase(messageRepo repository.MessageRepository, authUsecase AuthUsecase, hub *model.Hub) *MessageUsecase {
 	return &MessageUsecase{
-		messageRepo: messageRepo,
-		auth:        authUsecase,
+		MessageRepo: messageRepo,
+		Auth:        authUsecase,
+		Hub:         hub,
 	}
 }
 
@@ -34,9 +38,33 @@ func (uc *MessageUsecase) Post(ctx context.Context, userID, channelID, content s
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
-	if err := uc.messageRepo.Insert(ctx, message); err != nil {
+	if err := uc.MessageRepo.Insert(ctx, message); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (uc *MessageUsecase) CreateMessage(ctx context.Context, rawMsg []byte) error {
+	var msg model.Message
+
+	if err := json.Unmarshal(rawMsg, &msg); err != nil {
+		return err
+	}
+
+	message := &model.Message{
+		ID:        uuid.New(),
+		ChannelID: msg.ChannelID,
+		UserID:    msg.UserID,
+		Content:   msg.Content,
+		Timestamp: time.Now().Format(time.RFC3339),
+	}
+
+	if err := uc.MessageRepo.Insert(ctx, message); err != nil {
+		return err
+	}
+
+	uc.Hub.Broadcast<- rawMsg
 
 	return nil
 }

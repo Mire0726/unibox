@@ -32,34 +32,32 @@ func Serve(addr string) {
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Welcome to unibox")
 	})
-	// Firebaseクライアントの初期化
+
 	firebaseClient, err := firebase.NewClient(context.Background(), logger)
 	if err != nil {
 		logger.Error("Failed to initialize firebase client")
 		return
 	}
-	// AuthUsecaseの初期化
+
 	authUsecase := usecase.NewAuthUsecase(firebaseClient)
 
-	// AuthHandlerの初期化
 	authHandler := handler.NewAuthHandler(authUsecase)
 	e.POST("/signIn", authHandler.SignIn)
 	e.POST("/signUp", authHandler.SignUp)
 
-	// MessageRepositoryとMessageUsecaseの初期化
-	messageRepo := mysql.NewMessageRepository(mysql.Conn)
-	messageUsecase := usecase.NewMessageUsecase(messageRepo, authUsecase)
-
-	// MessageHandlerの初期化
-	messageHandler := handler.NewMessageHandler(authUsecase, messageUsecase)
-	// MessageHandlerのPostMessage関数を直接ルーティングにマップする
-	e.POST("/messages", messageHandler.PostMessage)
+	// messageRepo := mysql.NewMessageRepository(mysql.Conn)
+	// messageUsecase := usecase.NewMessageUsecase(messageRepo, authUsecase)
+	// messageHandler := handler.NewMessageHandler(authUsecase, messageUsecase)
+	// e.POST("/messages", messageHandler.PostMessage)
 
 	channelRepo := mysql.NewChannelRepository(mysql.Conn)
 	channelUsecase := usecase.NewChannelUsecase(channelRepo, authUsecase)
 
 	channelHandler := handler.NewChannelHandler(authUsecase, channelUsecase)
 	e.POST("/channels", channelHandler.PostChannel)
+
+	
+	
 	/* ===== サーバの起動 ===== */
 	logger.Info("Server running", log.Fstring("address", addr))
 	if err := e.Start(addr); err != nil {
