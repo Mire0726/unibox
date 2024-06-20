@@ -51,3 +51,4 @@ func (uc *authUsecase) VerifyToken(ctx context.Context, token string) (*firebase
 
 	return response, nil
 }
+

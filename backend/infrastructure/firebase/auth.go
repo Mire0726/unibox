@@ -18,7 +18,6 @@ import (
 )
 
 type FirebaseAuth interface {
-	SetCustomClaim(ctx context.Context, uid, orderID, storeID string) error
 	SignUpWithEmailPassword(ctx context.Context, email, password string) (*SignUpResponse, error)
 	SignInWithEmailPassword(ctx context.Context, email, password string) (*SignInResponse, error)
 	SendPasswordResetEmail(ctx context.Context, email string) (*SendPasswordResetEmailResponse, error)
@@ -117,14 +116,6 @@ func (c *AuthClient) SetManagerCustomClaim(ctx context.Context, uid, managerID, 
 
 type signUpRequest struct {
 	ReturnSecureToken bool `json:"returnSecureToken"`
-}
-
-type AnonymousUser struct {
-	Kind         string `json:"kind"`
-	IDToken      string `json:"idToken"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresIn    string `json:"expiresIn"`
-	LocalID      string `json:"localID"`
 }
 
 type signUpRequestWithEmailPassword struct {

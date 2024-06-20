@@ -3,10 +3,12 @@ package usecase
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/Mire0726/unibox/backend/domain/model"
 	"github.com/Mire0726/unibox/backend/domain/repository"
+	"github.com/Mire0726/unibox/backend/pkg/log"
 	"github.com/google/uuid"
 )
 
@@ -29,7 +31,16 @@ func NewMessageUsecase(messageRepo repository.MessageRepository, authUsecase Aut
 	}
 }
 
-func (uc *MessageUsecase) Post(ctx context.Context, userID, channelID, content string) error {
+func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID string, content string) error {
+	if uc.MessageRepo == nil {
+		log.Error("MessageRepo is not initialized")
+		return errors.New("internal server error")
+	}
+
+	if uc.Hub == nil {
+		log.Error("Hub is not initialized")
+		return errors.New("internal server error")
+	}
 	message := &model.Message{
 		ID:        uuid.New(),
 		ChannelID: channelID,
@@ -42,29 +53,12 @@ func (uc *MessageUsecase) Post(ctx context.Context, userID, channelID, content s
 		return err
 	}
 
-	return nil
-}
-
-func (uc *MessageUsecase) CreateMessage(ctx context.Context, rawMsg []byte) error {
-	var msg model.Message
-
-	if err := json.Unmarshal(rawMsg, &msg); err != nil {
+	messageData, err := json.Marshal(message)
+	if err != nil {
 		return err
 	}
 
-	message := &model.Message{
-		ID:        uuid.New(),
-		ChannelID: msg.ChannelID,
-		UserID:    msg.UserID,
-		Content:   msg.Content,
-		Timestamp: time.Now().Format(time.RFC3339),
-	}
-
-	if err := uc.MessageRepo.Insert(ctx, message); err != nil {
-		return err
-	}
-
-	uc.Hub.Broadcast<- rawMsg
+	uc.Hub.Broadcast <- messageData
 
 	return nil
 }

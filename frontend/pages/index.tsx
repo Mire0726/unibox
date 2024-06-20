@@ -19,13 +19,19 @@ export default function Login() {
         email: loginEmail,
         password: loginPassword,
       });
-      localStorage.setItem("token", response.data.token);
-      router.push("/home");
+      if (response.data.idToken) {  
+        localStorage.setItem("idToken", response.data.idToken);
+        router.push("/home");
+      } else {
+        console.error("トークンがレスポンスに含まれていません。");
+        alert("ログインに問題がありました。もう一度お試しください。");
+      }
     } catch (error) {
       console.error(error);
       alert("ログインに失敗しました。");
     }
   };
+  
 
   const handleSubmitRegistration = async (e) => {
     e.preventDefault();
