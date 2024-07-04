@@ -67,7 +67,7 @@ func (h *MessageHandler) PostMessage(c echo.Context) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
 	}
-	
+
 	if err = h.MessageUsecase.CreateMessage(c.Request().Context(), authInfo.ID, req.ChannelID, req.Content); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to post message")
 	}

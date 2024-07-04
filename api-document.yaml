@@ -23,11 +23,11 @@ paths:
                   type: string
                   format: email
                   description: "User's email"
-                  example: "user@example.com"
+                  example: "newuser@example.com"
                 password:
                   type: string
                   description: "User's password"
-                  example: "yourpassword"
+                  example: "securepassword"
               required:
                 - email
                 - password
@@ -299,6 +299,64 @@ paths:
                     type: string
                     description: "Description of the server error"
                     example: "Failed to create workspace"
+  /workspaces/login:
+    post:
+      tags:
+        - workspace
+      summary: "ワークスペースにログインする"
+      description: "指定されたワークスペースにログインします。"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ID:
+                  type: string
+                  description: "ID of the workspace."
+                password:
+                  type: string
+                  description: "Password of the workspace."
+              required:
+                - ID
+                - password
+      responses:
+        "201":
+          description: "Workspace login successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: "Confirmation that the workspace was login successfully."
+                    example: "Workspace login successfully"
+        "400":
+          description: "Invalid request parameters"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Description of the input error"
+                    example: "Invalid request parameters"
+        "500":
+          description: "Internal server error - Failed to login workspace"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Description of the server error"
+                    example: "Failed to login workspace"
 components:
   securitySchemes:
     BearerAuth:

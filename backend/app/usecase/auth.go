@@ -44,11 +44,9 @@ func (uc *authUsecase) VerifyToken(ctx context.Context, token string) (*firebase
 	if err != nil {
 		return nil, cerror.Wrap(err, "usecase", cerror.WithUnauthorizedCode())
 	}
-
 	response := &firebase.VerifyTokenResponse{
 		ID: authToken.UID,
 	}
 
 	return response, nil
 }
-

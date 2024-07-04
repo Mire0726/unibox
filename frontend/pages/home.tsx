@@ -47,12 +47,13 @@ const Chat = () => {
       console.error("No token found, please login again");
       return;
     }
+    
     try {
       const response = await fetch(`${backendUrl}/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Bearer prefix added
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           channelId: "0d1b6af3-1ce0-11ef-bbe1-0242ac150003",

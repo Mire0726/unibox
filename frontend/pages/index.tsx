@@ -19,9 +19,9 @@ export default function Login() {
         email: loginEmail,
         password: loginPassword,
       });
-      if (response.data.idToken) {  
+      if (response.data.idToken) {
         localStorage.setItem("idToken", response.data.idToken);
-        router.push("/home");
+        router.push("/workspace");
       } else {
         console.error("トークンがレスポンスに含まれていません。");
         alert("ログインに問題がありました。もう一度お試しください。");
@@ -31,7 +31,6 @@ export default function Login() {
       alert("ログインに失敗しました。");
     }
   };
-  
 
   const handleSubmitRegistration = async (e) => {
     e.preventDefault();
@@ -45,7 +44,7 @@ export default function Login() {
       alert("登録が完了しました。ログインしてください。");
       setLoginEmail(registerEmail);
       setLoginPassword(registerPassword);
-      handleSubmitLogin(e); 
+      handleSubmitLogin(e);
     } catch (error) {
       console.error(error);
       alert("登録に失敗しました。エラー: " + error.response.data.message);

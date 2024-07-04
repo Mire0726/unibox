@@ -86,34 +86,6 @@ func NewClientWithoutLogger(ctx context.Context) (*auth.Client, error) {
 	return client, nil
 }
 
-func (c *AuthClient) SetCustomClaim(ctx context.Context, uid, orderID, storeID string) error {
-	claims := map[string]interface{}{
-		"orderID": orderID,
-		"storeID": storeID,
-	}
-	if err := c.client.SetCustomUserClaims(ctx, uid, claims); err != nil {
-		c.logger.Error("Failed to set custom claims", log.Fstring("package", "firebase"), log.Ferror(err))
-
-		return cerror.Wrap(err, "firebase", cerror.WithFirebaseCode())
-	}
-
-	return nil
-}
-
-func (c *AuthClient) SetManagerCustomClaim(ctx context.Context, uid, managerID, role string) error {
-	claims := map[string]interface{}{
-		"managerID": managerID,
-		"role":      role,
-	}
-	if err := c.client.SetCustomUserClaims(ctx, uid, claims); err != nil {
-		c.logger.Error("Failed to set custom claims", log.Fstring("package", "firebase"), log.Ferror(err))
-
-		return cerror.Wrap(err, "firebase", cerror.WithFirebaseCode())
-	}
-
-	return nil
-}
-
 type signUpRequest struct {
 	ReturnSecureToken bool `json:"returnSecureToken"`
 }

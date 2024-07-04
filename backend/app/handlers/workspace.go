@@ -23,6 +23,7 @@ func NewWorkspaceHandler(authUsecase usecase.AuthUsecase, workspaceUsecase *usec
 }
 
 type RequestWorkspace struct {
+	ID       string `json:"id"`
 	Name     string `json:"name"`
 	Password string `json:"password"`
 }
@@ -79,7 +80,7 @@ func (h *WorkspaceHandler) SighnInWorkspace(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
 	}
 
-	workspaces, err := h.WorkspaceUsecase.SighnInWorkspace(c.Request().Context(), authInfo.ID, req.Name, req.Password)
+	workspaces, err := h.WorkspaceUsecase.SignInWorkspace(c.Request().Context(), authInfo.ID, req.ID, req.Password)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
 	}
