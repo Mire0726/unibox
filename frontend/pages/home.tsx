@@ -20,6 +20,7 @@ const Chat = () => {
         const messageData = JSON.parse(event.data);
         if (messageData.message) {
           setMessages((prev) => [...prev, messageData.message]);
+          console.log("Received message:", messageData.message);
         } else {
           console.error(
             "Received data does not contain 'message' key:",
@@ -63,6 +64,7 @@ const Chat = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          workspaceId: "d49d6cae-bbf3-44fe-aa4c-5a57a91df4dd",
           channelId: "0d1b6af3-1ce0-11ef-bbe1-0242ac150003",
           content: inputText,
         }),
@@ -88,7 +90,9 @@ const Chat = () => {
   return (
     <div>
       <h1>Chat Messages</h1>
+      <p>Messages:</p>
       <ul>
+        {messages.length === 0 && <li>No messages yet</li>}
         {messages.map((msg, index) => (
           <li key={index}>{msg}</li>
         ))}
