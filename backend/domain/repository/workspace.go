@@ -8,6 +8,7 @@ import (
 
 type WorkspaceRepository interface {
 	Insert(ctx context.Context, userID string, workspace *model.Workspace) error
+	FindByID(ctx context.Context, workspaceID, password string) (*model.Workspace, error)
 }
 
 type WorkspaceService struct {

@@ -28,3 +28,19 @@ func (repo *WorkspaceRepositoryMySQL) Insert(ctx context.Context, userID string,
 
 	return nil
 }
+
+func (repo *WorkspaceRepositoryMySQL) FindByID(ctx context.Context, workspaceID, password string) (*model.Workspace, error) {
+	const query = `
+		SELECT id, name, password
+		FROM workspaces
+		WHERE id = ? AND password = ?
+	`
+	row := repo.DB.QueryRow(query, workspaceID, password)
+
+	workspace := &model.Workspace{}
+	if err := row.Scan(&workspace.ID, &workspace.Name, &workspace.Password); err != nil {
+		return nil, err
+	}
+
+	return workspace, nil
+}	

@@ -57,3 +57,32 @@ func (h *WorkspaceHandler) PostWorkspace(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, map[string]string{"message": "Workspace created"})
 }
+
+func (h *WorkspaceHandler) SighnInWorkspace(c echo.Context) error {
+	authHeader := c.Request().Header.Get("Authorization")
+	if authHeader == "" {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Authorization token is required")
+	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	if token == authHeader {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Bearer token not found")
+	}
+
+	req := RequestWorkspace{}
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid request")
+	}
+
+	authInfo, err := h.AuthUsecase.VerifyToken(c.Request().Context(), token)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
+	}
+
+	workspaces, err := h.WorkspaceUsecase.SighnInWorkspace(c.Request().Context(), authInfo.ID, req.Name, req.Password)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
+	}
+
+	return c.JSON(http.StatusOK, workspaces)
+}

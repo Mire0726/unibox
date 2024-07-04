@@ -37,3 +37,17 @@ func (uc *WorkspaceUsecase) CreateWorkspace(ctx context.Context, userID string, 
 
 	return nil
 }
+
+func (uc *WorkspaceUsecase) SighnInWorkspace(ctx context.Context, userID string, workspaceID, password string) (*model.Workspace, error) {
+	if uc.WorkspaceRepo == nil {
+		log.Error("WorkspaceRepo is not initialized")
+		return nil, errors.New("internal server error")
+	}
+
+	workspace, err := uc.WorkspaceRepo.FindByID(ctx, workspaceID, password)
+	if err != nil {
+		return nil, err
+	}
+
+	return workspace, nil
+}

@@ -62,6 +62,7 @@ func Serve(addr string) {
 	workspaceUsecase := usecase.NewWorkspaceUsecase(workspaceRepo, authUsecase)
 	workspaceHandler := handler.NewWorkspaceHandler(authUsecase, workspaceUsecase)
 	e.POST("/workspaces", workspaceHandler.PostWorkspace)
+	e.GET("/workspaces", workspaceHandler.SighnInWorkspace)
 
 	channelHandler := handler.NewChannelHandler(authUsecase, channelUsecase)
 	e.POST("/channels", channelHandler.PostChannel)
