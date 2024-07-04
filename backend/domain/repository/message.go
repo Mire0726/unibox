@@ -8,6 +8,7 @@ import (
 
 type MessageRepository interface {
 	Insert(ctx context.Context, message *model.Message) error
+	ListByWorkspaceID(ctx context.Context, channelID, workspaceID string) ([]*model.Message, error)
 }
 
 type MessageService struct {

@@ -31,7 +31,7 @@ func NewMessageUsecase(messageRepo repository.MessageRepository, authUsecase Aut
 	}
 }
 
-func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID string, content string) error {
+func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID, workspaceID string, content string) error {
 	if uc.MessageRepo == nil {
 		log.Error("MessageRepo is not initialized")
 		return errors.New("internal server error")
@@ -41,12 +41,14 @@ func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID s
 		log.Error("Hub is not initialized")
 		return errors.New("internal server error")
 	}
+
 	message := &model.Message{
-		ID:        uuid.New(),
-		ChannelID: channelID,
-		UserID:    userID,
-		Content:   content,
-		Timestamp: time.Now().Format(time.RFC3339),
+		ID:          uuid.New(),
+		ChannelID:   channelID,
+		WorkspaceID: workspaceID,
+		UserID:      userID,
+		Content:     content,
+		Timestamp:   time.Now().Format(time.RFC3339),
 	}
 
 	if err := uc.MessageRepo.Insert(ctx, message); err != nil {
@@ -61,4 +63,30 @@ func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID s
 	uc.Hub.Broadcast <- messageData
 
 	return nil
+}
+
+func (uc *MessageUsecase) ListMessages(ctx context.Context, userID, channelID, workspaceID string) ([]*model.Message, error) {
+	if uc.MessageRepo == nil {
+		log.Error("MessageRepo is not initialized")
+		return nil, errors.New("internal server error")
+	}
+
+	if uc.Hub == nil {
+		log.Error("Hub is not initialized")
+		return nil, errors.New("internal server error")
+	}
+
+	messages, err := uc.MessageRepo.ListByWorkspaceID(ctx, channelID, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+
+	messageData, err := json.Marshal(messages)
+	if err != nil {
+		return nil, err
+	}
+
+	uc.Hub.Broadcast <- messageData
+
+	return messages, nil
 }

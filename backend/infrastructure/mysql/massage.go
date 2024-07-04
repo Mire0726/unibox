@@ -20,13 +20,37 @@ func NewMessageRepository(db *sql.DB) repository.MessageRepository {
 
 func (repo *MessageRepositoryMySQL) Insert(ctx context.Context, message *model.Message) error {
 	const query = `
-        INSERT INTO messages (message_id, channel_id, user_id, content, timestamp)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO messages (message_id, channel_id, user_id, content, workspace_id, timestamp)
+        VALUES (?, ?, ?, ?, ?,?)
     `
-	_, err := repo.DB.ExecContext(ctx, query, message.ID, message.ChannelID, message.UserID, message.Content, message.Timestamp)
+	_, err := repo.DB.ExecContext(ctx, query, message.ID, message.ChannelID, message.UserID, message.Content, message.WorkspaceID, message.Timestamp)
 	if err != nil {
 		return cerror.Wrap(err, "mysql", cerror.WithInternalCode())
 	}
 	fmt.Println("inserted")
 	return err
+}
+
+func (repo *MessageRepositoryMySQL) ListByWorkspaceID(ctx context.Context, channelID, workspaceID string) ([]*model.Message, error) {
+	const query = `
+		SELECT message_id, channel_id, user_id, content, workspace_id, timestamp
+		FROM messages
+		WHERE channel_id = ? AND workspace_id = ?
+	`
+	rows, err := repo.DB.QueryContext(ctx, query, channelID, workspaceID)
+	if err != nil {
+		return nil, cerror.Wrap(err, "mysql", cerror.WithInternalCode())
+	}
+	defer rows.Close()
+
+	var messages []*model.Message
+	for rows.Next() {
+		var message model.Message
+		if err := rows.Scan(&message.ID, &message.ChannelID, &message.UserID, &message.Content, &message.WorkspaceID, &message.Timestamp); err != nil {
+			return nil, cerror.Wrap(err, "mysql", cerror.WithInternalCode())
+		}
+		messages = append(messages, &message)
+	}
+
+	return messages, nil
 }

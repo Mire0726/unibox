@@ -23,8 +23,9 @@ func NewMessageHandler(authUsecase usecase.AuthUsecase, messageUsecase *usecase.
 }
 
 type RequestMessage struct {
-	ChannelID string `json:"channelId"`
-	Content   string `json:"content"`
+	ChannelID   string `json:"channelId"`
+	WorkspaceID string `json:"workspaceId"`
+	Content     string `json:"content"`
 }
 
 func websocketHandler(c echo.Context) error {
@@ -68,9 +69,36 @@ func (h *MessageHandler) PostMessage(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
 	}
 
-	if err = h.MessageUsecase.CreateMessage(c.Request().Context(), authInfo.ID, req.ChannelID, req.Content); err != nil {
+	if err = h.MessageUsecase.CreateMessage(c.Request().Context(), authInfo.ID, req.ChannelID, req.WorkspaceID, req.Content); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to post message")
 	}
 
 	return c.JSON(http.StatusCreated, map[string]string{"status": "Message posted successfully"})
+}
+
+func (h *MessageHandler) ListMessages(c echo.Context) error {
+	authHeader := c.Request().Header.Get("Authorization")
+	if authHeader == "" {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Authorization token is required")
+	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	if token == authHeader {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Bearer token not found")
+	}
+
+	authInfo, err := h.AuthUsecase.VerifyToken(c.Request().Context(), token)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
+	}
+
+	channelID := c.Param("channelId")
+	workspaceID := c.Param("workspaceId")
+
+	messages, err := h.MessageUsecase.ListMessages(c.Request().Context(), authInfo.ID, channelID, workspaceID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list messages")
+	}
+
+	return c.JSON(http.StatusOK, messages)
 }

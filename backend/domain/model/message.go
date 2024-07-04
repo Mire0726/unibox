@@ -6,6 +6,7 @@ import "github.com/google/uuid"
 type Message struct {
     ID        uuid.UUID
     ChannelID string
+    WorkspaceID string
     UserID    string
     Content   string
     Timestamp string

@@ -18,7 +18,14 @@ const Chat = () => {
     newWs.onmessage = (event) => {
       try {
         const messageData = JSON.parse(event.data);
-        setMessages((prev) => [...prev, messageData.message]);
+        if (messageData.message) {
+          setMessages((prev) => [...prev, messageData.message]);
+        } else {
+          console.error(
+            "Received data does not contain 'message' key:",
+            messageData
+          );
+        }
       } catch (error) {
         console.error("Error parsing message data:", error);
       }
@@ -47,7 +54,7 @@ const Chat = () => {
       console.error("No token found, please login again");
       return;
     }
-    
+
     try {
       const response = await fetch(`${backendUrl}/messages`, {
         method: "POST",
