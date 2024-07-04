@@ -58,6 +58,11 @@ func Serve(addr string) {
 	channelRepo := mysql.NewChannelRepository(mysql.Conn)
 	channelUsecase := usecase.NewChannelUsecase(channelRepo, authUsecase)
 
+	workspaceRepo := mysql.NewWorkspaceRepository(mysql.Conn)
+	workspaceUsecase := usecase.NewWorkspaceUsecase(workspaceRepo, authUsecase)
+	workspaceHandler := handler.NewWorkspaceHandler(authUsecase, workspaceUsecase)
+	e.POST("/workspaces", workspaceHandler.PostWorkspace)
+
 	channelHandler := handler.NewChannelHandler(authUsecase, channelUsecase)
 	e.POST("/channels", channelHandler.PostChannel)
 

@@ -1,0 +1,39 @@
+package usecase
+
+import (
+	"context"
+	"errors"
+
+	"github.com/Mire0726/unibox/backend/domain/model"
+	"github.com/Mire0726/unibox/backend/domain/repository"
+	"github.com/Mire0726/unibox/backend/pkg/log"
+)
+
+type WorkspaceService interface {
+	CreateWorkspace(ctx context.Context, workspace *model.Workspace) error
+}
+
+type WorkspaceUsecase struct {
+	WorkspaceRepo repository.WorkspaceRepository
+	Auth          AuthUsecase
+}
+
+func NewWorkspaceUsecase(workspaceRepo repository.WorkspaceRepository, authUsecase AuthUsecase) *WorkspaceUsecase {
+	return &WorkspaceUsecase{
+		WorkspaceRepo: workspaceRepo,
+		Auth:          authUsecase,
+	}
+}
+
+func (uc *WorkspaceUsecase) CreateWorkspace(ctx context.Context, userID string, workspace *model.Workspace) error {
+	if uc.WorkspaceRepo == nil {
+		log.Error("WorkspaceRepo is not initialized")
+		return errors.New("internal server error")
+	}
+
+	if err := uc.WorkspaceRepo.Insert(ctx, userID, workspace); err != nil {
+		return err
+	}
+
+	return nil
+}

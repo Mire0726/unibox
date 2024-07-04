@@ -6,14 +6,6 @@ servers:
   - url: "http://localhost:8080"
   - url: "http://localhost:3000"
 paths:
-  /users:
-    get:
-      tags:
-        - user
-      summary: "全ユーザーを取得"
-      responses:
-        "200":
-          description: "ユーザーリストの取得に成功しました"
   /signIn:
     post:
       tags:
@@ -249,6 +241,64 @@ paths:
                     type: string
                     description: "Description of the server error"
                     example: "Failed to create message"
+  /workspaces:
+    post:
+      tags:
+        - workspace
+      summary: "ワークスペースを投稿する"
+      description: "指定されたワークスペースにを投稿します。"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "Name of the workspace."
+                password:
+                  type: string
+                  description: "Password of the workspace."
+              required:
+                - name
+                - password
+      responses:
+        "201":
+          description: "Workspace created successfully"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    description: "Confirmation that the workspace was posted successfully."
+                    example: "Workspace created successfully"
+        "400":
+          description: "Invalid request parameters"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Description of the input error"
+                    example: "Invalid request parameters"
+        "500":
+          description: "Internal server error - Failed to create workspace"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Description of the server error"
+                    example: "Failed to create workspace"
 components:
   securitySchemes:
     BearerAuth:

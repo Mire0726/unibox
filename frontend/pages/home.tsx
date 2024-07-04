@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
-import { onAuthStateChanged, getIdToken } from "firebase/auth"; // Firebaseの認証関連の関数
-import { auth } from "../firebase/auth"; // 正確なパスに修正
+import { onAuthStateChanged, getIdToken } from "firebase/auth";
+import { auth } from "../firebase/auth";
 
 const Chat = () => {
   const [messages, setMessages] = useState<string[]>([]);
@@ -18,7 +18,7 @@ const Chat = () => {
     newWs.onmessage = (event) => {
       try {
         const messageData = JSON.parse(event.data);
-        setMessages((prev) => [...prev, messageData.message]); 
+        setMessages((prev) => [...prev, messageData.message]);
       } catch (error) {
         console.error("Error parsing message data:", error);
       }
@@ -64,7 +64,7 @@ const Chat = () => {
         setInputText("");
       } else {
         const data = await response.json();
-        console.error("Failed to send message:", data.message); 
+        console.error("Failed to send message:", data.message);
       }
     } catch (error) {
       console.error("Failed to send message err:", error);
@@ -76,6 +76,7 @@ const Chat = () => {
       ws?.send(message);
     }
   };
+
   return (
     <div>
       <h1>Chat Messages</h1>

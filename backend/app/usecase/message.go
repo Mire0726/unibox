@@ -13,8 +13,8 @@ import (
 )
 
 type Message interface {
-	Post(ctx context.Context, userID, channelID, content string) error
 	CreateMessagee(ctx context.Context, rawMsg []byte) error
+	ListMessages(ctx context.Context, channelID string) ([]*model.Message, error)
 }
 
 type MessageUsecase struct {

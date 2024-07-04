@@ -45,7 +45,7 @@ export default function Login() {
       alert("登録が完了しました。ログインしてください。");
       setLoginEmail(registerEmail);
       setLoginPassword(registerPassword);
-      handleSubmitLogin(e); // 登録後自動でログイン
+      handleSubmitLogin(e); 
     } catch (error) {
       console.error(error);
       alert("登録に失敗しました。エラー: " + error.response.data.message);
@@ -100,11 +100,6 @@ export default function Login() {
         />
         <button type="submit">登録</button>
       </form>
-      <img
-        src="/cat1.png"
-        alt="Description of image"
-        className={styles.cardImage}
-      />
     </>
   );
 }
