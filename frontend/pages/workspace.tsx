@@ -48,7 +48,7 @@ export default function Login() {
         }),
       });
       if (response.ok) {
-        router.push("/home");
+        router.push(`/home?workspaceID=${loginID}`);
       } else {
         const data = await response.json();
         console.error("Failed to login workspace:", data.message);

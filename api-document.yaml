@@ -125,14 +125,27 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "500":
           $ref: "#/components/responses/InternalServerError"
-  /messages:
+  /workspaces/{workspaceId}/channels/{channelId}/messages:
     post:
       tags:
         - message
       summary: "メッセージを投稿する"
-      description: "指定されたチャンネルにメッセージを投稿します。"
+      description: "指定されたワークスペースとチャンネルにメッセージを投稿します。"
       security:
         - BearerAuth: []
+      parameters:
+        - name: workspaceId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "投稿するメッセージのワークスペースID。"
+        - name: channelId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "投稿するメッセージのチャンネルID。"
       requestBody:
         required: true
         content:
@@ -140,18 +153,14 @@ paths:
             schema:
               type: object
               properties:
-                channelId:
-                  type: string
-                  description: "The ID of the channel where the message is to be posted."
                 content:
                   type: string
-                  description: "Content of the message."
+                  description: "メッセージの内容。"
               required:
-                - channelId
                 - content
       responses:
         "201":
-          description: "Channel created successfully"
+          description: "メッセージが成功的に作成されました。"
           content:
             application/json:
               schema:
@@ -159,10 +168,10 @@ paths:
                 properties:
                   status:
                     type: string
-                    description: "Confirmation that the message was posted successfully."
+                    description: "メッセージが投稿されたことの確認メッセージ。"
                     example: "Message created successfully"
         "400":
-          description: "Invalid request parameters"
+          description: "無効なリクエストパラメーター"
           content:
             application/json:
               schema:
@@ -170,10 +179,10 @@ paths:
                 properties:
                   error:
                     type: string
-                    description: "Description of the input error"
+                    description: "入力エラーの説明。"
                     example: "Invalid request parameters"
         "500":
-          description: "Internal server error - Failed to create channel"
+          description: "サーバー内部エラー - メッセージの作成に失敗しました。"
           content:
             application/json:
               schema:
@@ -181,8 +190,9 @@ paths:
                 properties:
                   error:
                     type: string
-                    description: "Description of the server error"
+                    description: "サーバーエラーの説明。"
                     example: "Failed to create message"
+
   /channels:
     post:
       tags:

@@ -9,6 +9,9 @@ const Chat = () => {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const router = useRouter();
   const backendUrl = "http://localhost:8080";
+  const workspaceId = router.query.workspaceID;
+  console.log("workspaceId:", workspaceId);
+  const channelId = "testchannelID";
 
   useEffect(() => {
     const newWs = new WebSocket(`${backendUrl}/ws`);
@@ -32,7 +35,7 @@ const Chat = () => {
       }
     };
     setWs(newWs);
-
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.push("/index");
@@ -57,18 +60,19 @@ const Chat = () => {
     }
 
     try {
-      const response = await fetch(`${backendUrl}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          workspaceId: "d49d6cae-bbf3-44fe-aa4c-5a57a91df4dd",
-          channelId: "0d1b6af3-1ce0-11ef-bbe1-0242ac150003",
-          content: inputText,
-        }),
-      });
+      const response = await fetch(
+        `${backendUrl}/workspaces/${workspaceId}/channels/${channelId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            content: inputText,
+          }),
+        }
+      );
       if (response.ok) {
         sendMessage(inputText);
         setInputText("");

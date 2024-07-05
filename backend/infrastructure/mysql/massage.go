@@ -25,9 +25,10 @@ func (repo *MessageRepositoryMySQL) Insert(ctx context.Context, message *model.M
     `
 	_, err := repo.DB.ExecContext(ctx, query, message.ID, message.ChannelID, message.UserID, message.Content, message.WorkspaceID, message.Timestamp)
 	if err != nil {
+		fmt.Printf("Error inserting message: %v\n", err)
+
 		return cerror.Wrap(err, "mysql", cerror.WithInternalCode())
 	}
-	fmt.Println("inserted")
 	return err
 }
 

@@ -53,8 +53,8 @@ func Serve(addr string) {
 	messageRepo := mysql.NewMessageRepository(mysql.Conn)
 	messageUsecase := usecase.NewMessageUsecase(messageRepo, authUsecase, hub)
 	messageHandler := handler.NewMessageHandler(authUsecase, messageUsecase)
-	e.POST("/messages", messageHandler.PostMessage)
-	e.GET("/messages", messageHandler.ListMessages)
+	e.POST("/workspaces/:workspaceID/channels/:channelID/messages", messageHandler.PostMessage)
+	e.GET("/workspaces/:workspaceID/channels/:channelID/messages", messageHandler.ListMessages)
 
 	channelRepo := mysql.NewChannelRepository(mysql.Conn)
 	channelUsecase := usecase.NewChannelUsecase(channelRepo, authUsecase)
