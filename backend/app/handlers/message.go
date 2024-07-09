@@ -96,13 +96,21 @@ func (h *MessageHandler) ListMessages(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
 	}
 
+	fmt.Println("authInfo: ", authInfo)
+
 	channelID := c.Param("channelID")
 	workspaceID := c.Param("workspaceID")
 
-	messages, err := h.MessageUsecase.ListMessages(c.Request().Context(), authInfo.ID, channelID, workspaceID)
+	messages, err := h.MessageUsecase.ListMessages(c.Request().Context(), channelID, workspaceID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list messages")
 	}
 
-	return c.JSON(http.StatusOK, messages)
+	for _, message := range messages {
+		if err := c.JSON(http.StatusOK, message); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

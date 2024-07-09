@@ -14,19 +14,22 @@ const Chat = () => {
   const channelId = "testchannelID";
 
   useEffect(() => {
-    const newWs = new WebSocket(`${backendUrl}/ws`);
+    const newWs = new WebSocket(`${backendUrl}/ws?workspaceID=${workspaceId}&channelID=${channelId}`);
     newWs.onopen = () => {
       console.log("WebSocket connection established");
     };
+
     newWs.onmessage = (event) => {
       try {
         const messageData = JSON.parse(event.data);
-        if (messageData.message) {
-          setMessages((prev) => [...prev, messageData.message]);
-          console.log("Received message:", messageData.message);
+        console.log("Parsed message data:", messageData); 
+        if (messageData.Content) {
+          // 'message' の代わりに 'Content' を使用
+          setMessages((prev) => [...prev, messageData.Content]);
+          console.log("Received message:", messageData.Content);
         } else {
           console.error(
-            "Received data does not contain 'message' key:",
+            "Received data does not contain 'Content' key:",
             messageData
           );
         }
@@ -34,8 +37,9 @@ const Chat = () => {
         console.error("Error parsing message data:", error);
       }
     };
+
     setWs(newWs);
-    
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.push("/index");
@@ -49,7 +53,7 @@ const Chat = () => {
       newWs.close();
       unsubscribe();
     };
-  }, [router]);
+  }, [router, workspaceId, channelId]);
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();

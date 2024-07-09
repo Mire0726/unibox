@@ -48,7 +48,7 @@ func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID, 
 		WorkspaceID: workspaceID,
 		UserID:      userID,
 		Content:     content,
-		Timestamp:   time.Now().Format(time.RFC3339),
+		Timestamp:   time.Now(),
 	}
 
 	if err := uc.MessageRepo.Insert(ctx, message); err != nil {
@@ -65,7 +65,7 @@ func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID, 
 	return nil
 }
 
-func (uc *MessageUsecase) ListMessages(ctx context.Context, userID, channelID, workspaceID string) ([]*model.Message, error) {
+func (uc *MessageUsecase) ListMessages(ctx context.Context, channelID, workspaceID string) ([]*model.Message, error) {
 	if uc.MessageRepo == nil {
 		log.Error("MessageRepo is not initialized")
 		return nil, errors.New("internal server error")
@@ -89,4 +89,32 @@ func (uc *MessageUsecase) ListMessages(ctx context.Context, userID, channelID, w
 	uc.Hub.Broadcast <- messageData
 
 	return messages, nil
+}
+
+func (uc *MessageUsecase) StartRealtimeUpdates(channelID, workspaceID string, interval time.Duration) {
+	lastCheck := time.Now()
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			messages, err := uc.MessageRepo.GetMessagesSince(context.Background(), channelID, workspaceID, lastCheck)
+			if err != nil {
+				// エラーハンドリング
+				continue
+			}
+			if len(messages) > 0 {
+				for _, msg := range messages {
+					messageData, err := json.Marshal(msg)
+					if err != nil {
+						// エラーハンドリング
+						continue
+					}
+					uc.Hub.Broadcast <- messageData
+				}
+				lastCheck = messages[len(messages)-1].Timestamp
+			}
+		}
+	}
 }

@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"net/http"
+	"time"
 
 	// "github.com/go-playground/locales/hub"
 	"github.com/labstack/echo/v4"
@@ -47,14 +48,19 @@ func Serve(addr string) {
 	e.POST("/signIn", authHandler.SignIn)
 	e.POST("/signUp", authHandler.SignUp)
 
-	e.GET("/ws", websocket.HandleWebSocketConnection)
-
 	hub := websocket.NewHub()
+	go hub.Run()
+
+	// e.GET("/ws", websocket.HandleWebSocketConnection)
+
 	messageRepo := mysql.NewMessageRepository(mysql.Conn)
 	messageUsecase := usecase.NewMessageUsecase(messageRepo, authUsecase, hub)
 	messageHandler := handler.NewMessageHandler(authUsecase, messageUsecase)
 	e.POST("/workspaces/:workspaceID/channels/:channelID/messages", messageHandler.PostMessage)
 	e.GET("/workspaces/:workspaceID/channels/:channelID/messages", messageHandler.ListMessages)
+
+	e.GET("/ws", websocket.HandleWebSocketConnection(hub, messageUsecase))
+	go startRealtimeUpdates(messageUsecase)
 
 	channelRepo := mysql.NewChannelRepository(mysql.Conn)
 	channelUsecase := usecase.NewChannelUsecase(channelRepo, authUsecase)
@@ -73,4 +79,8 @@ func Serve(addr string) {
 	if err := e.Start(addr); err != nil {
 		logger.Error("Failed to start server", log.Ferror(err))
 	}
+}
+
+func startRealtimeUpdates(messageUsecase *usecase.MessageUsecase) {
+	go messageUsecase.StartRealtimeUpdates("429bcd48-faa1-4e2e-b35b-ac388189fad3", "testchannelID", 5*time.Second)
 }

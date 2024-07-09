@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/Mire0726/unibox/backend/domain/model"
 	"github.com/Mire0726/unibox/backend/domain/repository"
@@ -53,5 +54,54 @@ func (repo *MessageRepositoryMySQL) ListByWorkspaceID(ctx context.Context, chann
 		messages = append(messages, &message)
 	}
 
+	return messages, nil
+}
+
+func (repo *MessageRepositoryMySQL) ListRecentMessages(ctx context.Context, channelID, workspaceID string, limit int) ([]*model.Message, error) {
+	query := `
+        SELECT message_id, channel_id, user_id, content, workspace_id, timestamp
+        FROM messages
+        WHERE channel_id = ? AND workspace_id = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    `
+	rows, err := repo.DB.QueryContext(ctx, query, channelID, workspaceID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []*model.Message
+	for rows.Next() {
+		var msg model.Message
+		if err := rows.Scan(&msg.ID, &msg.ChannelID, &msg.UserID, &msg.Content, &msg.WorkspaceID, &msg.Timestamp); err != nil {
+			return nil, err
+		}
+		messages = append(messages, &msg)
+	}
+	return messages, nil
+}
+
+func (repo *MessageRepositoryMySQL) GetMessagesSince(ctx context.Context, channelID, workspaceID string, since time.Time) ([]*model.Message, error) {
+	query := `
+        SELECT message_id, channel_id, user_id, content, workspace_id, timestamp
+        FROM messages
+        WHERE channel_id = ? AND workspace_id = ? AND timestamp > ?
+        ORDER BY timestamp ASC
+    `
+	rows, err := repo.DB.QueryContext(ctx, query, channelID, workspaceID, since)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var messages []*model.Message
+	for rows.Next() {
+		var msg model.Message
+		if err := rows.Scan(&msg.ID, &msg.ChannelID, &msg.UserID, &msg.Content, &msg.WorkspaceID, &msg.Timestamp); err != nil {
+			return nil, err
+		}
+		messages = append(messages, &msg)
+	}
 	return messages, nil
 }

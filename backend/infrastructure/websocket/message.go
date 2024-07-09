@@ -1,51 +1,65 @@
 package websocket
 
 import (
-	"log"
+	"encoding/json"
 	"net/http"
+	"time"
 
+	"github.com/Mire0726/unibox/backend/app/usecase"
+	"github.com/Mire0726/unibox/backend/domain/model"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
-
-    "github.com/Mire0726/unibox/backend/domain/model"
 )
+
 func NewHub() *model.Hub {
-    return &model.Hub{
-        Broadcast:  make(chan []byte),
-        Register:   make(chan *model.Client),
-        Unregister: make(chan *model.Client),
-        Clients:    make(map[*model.Client]bool),
-    }
+	return &model.Hub{
+		Broadcast:  make(chan []byte),
+		Register:   make(chan *model.Client),
+		Unregister: make(chan *model.Client),
+		Clients:    make(map[*model.Client]bool),
+	}
 }
+
 var upgrader = websocket.Upgrader{
-    CheckOrigin: func(r *http.Request) bool {
-        return true
-    },
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
 func UpgradeWebSocket(c echo.Context) (*websocket.Conn, error) {
-    ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
-    if err != nil {
-        return nil, err 
-    }
-    return ws, nil
+	ws, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return ws, nil
 }
+func HandleWebSocketConnection(hub *model.Hub, messageUsecase *usecase.MessageUsecase) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		conn, err := UpgradeWebSocket(c)
+		if err != nil {
+			return err
+		}
 
-func HandleWebSocketConnection(c echo.Context) error {
-    ws, err := UpgradeWebSocket(c)
-    if err != nil {
-		log.Println("Failed to upgrade to WebSocket:", err)
-        return err 
-    }
-    defer ws.Close()
+		client := model.NewClient(hub, conn)
+		hub.Register <- client
 
-    for {
-        messageType, message, err := ws.ReadMessage()
-        if err != nil {
-            break
-        }
-        ws.WriteMessage(messageType, message) 
-    }
+		channelID := c.QueryParam("channel_id")
+		workspaceID := c.QueryParam("workspace_id")
 
-    return nil
+		messages, err := messageUsecase.ListMessages(c.Request().Context(), channelID, workspaceID)
+		if err == nil {
+			for _, msg := range messages {
+				messageData, err := json.Marshal(msg)
+				if err == nil {
+					client.Send <- messageData
+				}
+			}
+		}
+		go messageUsecase.StartRealtimeUpdates(channelID, workspaceID, 5*time.Second)
+
+		go client.WritePump()
+		go client.ReadPump()
+
+		return nil
+	}
 }
