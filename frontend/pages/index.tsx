@@ -10,8 +10,10 @@ import {
   FormControl,
   FormLabel,
 } from "@chakra-ui/react";
+import useAuth from "../firebase/auth";
 
 export default function Login() {
+  const { signInWithGoogle } = useAuth();
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [name, setName] = useState("");
@@ -121,6 +123,17 @@ export default function Login() {
             >
               ログイン
             </Button>
+            <Button
+              type="submit"
+              bg="#e6e6fa"
+              _hover={{ bg: "#2D3748", color: "#e6e6fa" }}
+              width="full"
+              borderRadius={10}
+              alignItems="center"
+              onClick={signInWithGoogle}
+            >
+              Googleでログイン
+            </Button>
           </form>
 
           <form onSubmit={handleSubmitRegistration}>
@@ -129,7 +142,7 @@ export default function Login() {
               color="#696969"
               textAlign="center"
               fontFamily="Arial"
-             fontSize={15}
+              fontSize={15}
             >
               新規登録
             </Heading>
