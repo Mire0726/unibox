@@ -96,8 +96,8 @@ func (h *MessageHandler) ListMessages(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
 	}
 
-	channelID := c.Param("channelId")
-	workspaceID := c.Param("workspaceId")
+	channelID := c.Param("channelID")
+	workspaceID := c.Param("workspaceID")
 
 	messages, err := h.MessageUsecase.ListMessages(c.Request().Context(), authInfo.ID, channelID, workspaceID)
 	if err != nil {

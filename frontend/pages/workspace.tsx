@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useRouter } from "next/router";
-import styles from "./index.module.scss";
 import { onAuthStateChanged, getIdToken } from "firebase/auth";
 import { auth } from "../firebase/auth";
+import {
+  Input,
+  Button,
+  Heading,
+  Flex,
+  VStack,
+  FormControl,
+  FormLabel,
+} from "@chakra-ui/react";
 
 export default function Login() {
   const [loginID, setLoginID] = useState("");
@@ -71,21 +79,21 @@ export default function Login() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`, // Bearer prefix added
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: registerName,
           password: registerPassword,
         }),
       });
-      const data = await response.json(); 
+      const data = await response.json();
       if (response.ok) {
-        setLoginID(data.ID); 
-        alert("This workspace ID is " + data.ID); 
+        setLoginID(data.ID);
+        alert("This workspace ID is " + data.ID);
         setLoginPassword(registerPassword);
-        handleSubmitLogin(e); 
+        handleSubmitLogin(e);
       } else {
-        alert("Failed to register. No ID returned: " + data.message); 
+        alert("Failed to register. No ID returned: " + data.message);
       }
     } catch (error) {
       console.error(error);
@@ -97,46 +105,117 @@ export default function Login() {
   };
 
   return (
-    <>
-      <form onSubmit={handleSubmitLogin} className={styles.loginForm}>
-        <h3>Login</h3>
-        <input
-          type="text"
-          value={loginID}
-          onChange={(e) => setLoginID(e.target.value)}
-          placeholder="Workspace ID"
-          required
-        />
-        <input
-          type="password"
-          value={loginPassword}
-          onChange={(e) => setLoginPassword(e.target.value)}
-          placeholder="Password"
-          required
-        />
-        <button type="submit">Log in to Workspace</button>
-      </form>
-      <form
-        onSubmit={handleSubmitRegistration}
-        className={styles.registrationForm}
+    <Flex height="100vh" alignItems="center" justifyContent="center">
+      <Flex
+        direction="column"
+        padding={100}
+        rounded={50}
+        minWidth="550px"
+        maxWidth="90%"
       >
-        <h3>Register</h3>
-        <input
-          type="text"
-          value={registerName}
-          onChange={(e) => setRegisterName(e.target.value)}
-          placeholder="Workspace Name"
-          required
-        />
-        <input
-          type="password"
-          value={registerPassword}
-          onChange={(e) => setRegisterPassword(e.target.value)}
-          placeholder="Password"
-          required
-        />
-        <button type="submit">Register Workspace</button>
-      </form>
-    </>
+        <VStack
+          spacing={2}
+          align="center"
+          bg="#e6e6fa"
+          width={400}
+          p={8}
+          borderRadius="12px"
+          boxShadow="lg"
+        >
+          <form onSubmit={handleSubmitLogin}>
+            <Heading
+              padding={10}
+              color="#696969"
+              textAlign="center"
+              fontFamily="Arial"
+            >
+              ログイン
+            </Heading>
+            <FormControl id="loginID" mb={4}>
+              <FormLabel color="#696969">Workspace ID</FormLabel>
+              <Input
+                placeholder="Workspace ID"
+                type="text"
+                value={loginID}
+                onChange={(e) => setLoginID(e.target.value)}
+                required
+                height={30}
+                width={300}
+              />
+            </FormControl>
+            <FormControl id="loginPassword" mb={4}>
+              <FormLabel color="#696969">Password</FormLabel>
+              <Input
+                placeholder="Password"
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                required
+                color="#696969"
+                height={30}
+                width={300}
+              />
+            </FormControl>
+            <Button
+              type="submit"
+              bg="#e6e6fa"
+              _hover={{ bg: "#2D3748", color: "#e6e6fa" }}
+              width="full"
+              borderRadius={10}
+              alignItems="center"
+            >
+              ログイン
+            </Button>
+          </form>
+
+          <form onSubmit={handleSubmitRegistration}>
+            <Heading
+              padding={1}
+              color="#696969"
+              textAlign="center"
+              fontFamily="Arial"
+              fontSize={15}
+            >
+              新規登録
+            </Heading>
+            <FormControl id="registerName" mb={4}>
+              <FormLabel color="#696969">Workspace Name</FormLabel>
+              <Input
+                placeholder="Workspace Name"
+                type="text"
+                value={registerName}
+                onChange={(e) => setRegisterName(e.target.value)}
+                required
+                height={20}
+                width={200}
+              />
+            </FormControl>
+            <FormControl id="registerPassword" mb={4}>
+              <FormLabel color="#696969">Password</FormLabel>
+              <Input
+                placeholder="Password"
+                type="password"
+                value={registerPassword}
+                onChange={(e) => setRegisterPassword(e.target.value)}
+                required
+                color="#696969"
+                height={20}
+                width={200}
+              />
+            </FormControl>
+            <Button
+              type="submit"
+              bg="#e6e6fa"
+              _hover={{ bg: "#2D3748", color: "#e6e6fa" }}
+              width="full"
+              borderRadius={10}
+              alignItems="center"
+            >
+              登録
+            </Button>
+          </form>
+        </VStack>
+      </Flex>
+    </Flex>
   );
 }
