@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/Mire0726/unibox/backend/app/usecase"
+	"github.com/Mire0726/unibox/backend/domain/model"
 	"github.com/Mire0726/unibox/backend/infrastructure/websocket"
 	"github.com/labstack/echo/v4"
 )
@@ -81,6 +82,7 @@ func (h *MessageHandler) PostMessage(c echo.Context) error {
 }
 
 func (h *MessageHandler) ListMessages(c echo.Context) error {
+	fmt.Println("ListMessages")
 	authHeader := c.Request().Header.Get("Authorization")
 	if authHeader == "" {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Authorization token is required")
@@ -106,11 +108,28 @@ func (h *MessageHandler) ListMessages(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list messages")
 	}
 
-	for _, message := range messages {
-		if err := c.JSON(http.StatusOK, message); err != nil {
-			return err
-		}
-	}
+	// for _, message := range messages {
+	// 	if err := c.JSON(http.StatusOK, message); err != nil {
+	// 		return err
+	// 	}
+	// }
 
-	return nil
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"messages": h.makeMessages(messages),
+	})
+}
+
+func (h *MessageHandler) makeMessages(messages []*model.Message) []map[string]interface{} {
+	var messageList []map[string]interface{}
+	for _, message := range messages {
+		messageList = append(messageList, map[string]interface{}{
+			"id":          message.ID,
+			"channelID":   message.ChannelID,
+			"workspaceID": message.WorkspaceID,
+			"userID":      message.UserID,
+			"content":     message.Content,
+			"timestamp":   message.Timestamp,
+		})
+	}
+	return messageList
 }

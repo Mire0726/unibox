@@ -8,11 +8,11 @@ import (
 )
 
 type Message struct {
-	ID          uuid.UUID
-	ChannelID   string
-	WorkspaceID string
-	UserID      string
-	Content     string
+	ID          uuid.UUID `json:"id"`
+	ChannelID   string    `json:"channelID"`
+	WorkspaceID string    `json:"workspaceID"`
+	UserID      string    `json:"userID"`
+	Content     string    `json:"content"`
 	Timestamp   time.Time `json:"timestamp"`
 }
 
