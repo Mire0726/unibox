@@ -108,12 +108,6 @@ func (h *MessageHandler) ListMessages(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list messages")
 	}
 
-	// for _, message := range messages {
-	// 	if err := c.JSON(http.StatusOK, message); err != nil {
-	// 		return err
-	// 	}
-	// }
-
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"messages": h.makeMessages(messages),
 	})

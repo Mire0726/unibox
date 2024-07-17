@@ -33,6 +33,7 @@ func UpgradeWebSocket(c echo.Context) (*websocket.Conn, error) {
 	}
 	return ws, nil
 }
+
 func HandleWebSocketConnection(hub *model.Hub, messageUsecase *usecase.MessageUsecase) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		conn, err := UpgradeWebSocket(c)

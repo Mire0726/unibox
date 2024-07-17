@@ -38,6 +38,7 @@ func (repo *MessageRepositoryMySQL) ListByWorkspaceID(ctx context.Context, chann
 		SELECT message_id, channel_id, user_id, content, workspace_id, timestamp
 		FROM messages
 		WHERE channel_id = ? AND workspace_id = ?
+		ORDER BY timestamp ASC
 	`
 	rows, err := repo.DB.QueryContext(ctx, query, channelID, workspaceID)
 	if err != nil {

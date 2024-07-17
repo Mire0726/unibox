@@ -101,14 +101,13 @@ func (uc *MessageUsecase) StartRealtimeUpdates(channelID, workspaceID string, in
 		case <-ticker.C:
 			messages, err := uc.MessageRepo.GetMessagesSince(context.Background(), channelID, workspaceID, lastCheck)
 			if err != nil {
-				// エラーハンドリング
 				continue
 			}
 			if len(messages) > 0 {
 				for _, msg := range messages {
 					messageData, err := json.Marshal(msg)
 					if err != nil {
-						// エラーハンドリング
+
 						continue
 					}
 					uc.Hub.Broadcast <- messageData

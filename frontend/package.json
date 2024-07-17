@@ -3,6 +3,8 @@
     "@chakra-ui/react": "^2.8.2",
     "@emotion/react": "^11",
     "@emotion/styled": "^11",
+    "@openameba/spindle-icons": "^1.4.0",
+    "@openameba/spindle-ui": "^1.5.1",
     "axios": "^1.6.7",
     "firebase": "^10.11.1",
     "framer-motion": "^11.2.13",

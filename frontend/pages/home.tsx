@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { onAuthStateChanged, getIdToken } from "firebase/auth";
 import { auth } from "../firebase/auth";
+import { Abemakun } from "@openameba/spindle-ui/Icon";
 import {
   Box,
   VStack,
@@ -16,8 +17,19 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 
+const formatTimestamp = (timestamp) => {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}/${month}/${day}-${hours}:${minutes}`;
+};
+
 const Chat = () => {
   const [messages, setMessages] = useState<string[]>([]);
+  const [timeStamp, setTimeStamp] = useState<string[]>([]);
   const [inputText, setInputText] = useState("");
   const [ws, setWs] = useState<WebSocket | null>(null);
   const router = useRouter();
@@ -34,7 +46,7 @@ const Chat = () => {
         console.error("No token found, please login again");
         return;
       }
-  
+
       try {
         const response = await fetch(
           `${backendUrl}/workspaces/${workspaceId}/channels/${channelId}/messages`,
@@ -47,7 +59,10 @@ const Chat = () => {
         if (response.ok) {
           const data = await response.json();
           if (Array.isArray(data.messages)) {
-            setMessages(data.messages.map(msg => msg.content));
+            setMessages(data.messages.map((msg) => msg.content));
+            setTimeStamp(
+              data.messages.map((msg) => formatTimestamp(msg.timestamp))
+            );
           } else {
             console.error("Unexpected response structure:", data);
           }
@@ -58,46 +73,63 @@ const Chat = () => {
         console.error("Error fetching messages:", error);
       }
     };
-  
+
     const setupWebSocket = () => {
       const newWs = new WebSocket(
         `${backendUrl}/ws?workspaceID=${workspaceId}&channelID=${channelId}`
       );
-  
+
       newWs.onopen = () => {
         console.log("WebSocket connection established");
         fetchMessages();
       };
-  
+
       newWs.onmessage = (event) => {
         try {
           const messageData = JSON.parse(event.data);
           console.log("Parsed message data:", messageData);
           if (Array.isArray(messageData.messages)) {
-            setMessages(prevMessages => [...prevMessages, ...messageData.messages.map(msg => msg.content)]);
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              ...messageData.messages.map((msg) => msg.content),
+            ]);
+            setTimeStamp((prevMessages) => [
+              ...prevMessages,
+              ...messageData.messages.map((msg) => msg.timestamp),
+            ]);
             console.log("Received messages:", messageData.messages);
           } else if (messageData.content) {
-            setMessages(prevMessages => [...prevMessages, messageData.content]);
+            setMessages((prevMessages) => [
+              ...prevMessages,
+              messageData.content,
+            ]);
+            setTimeStamp((prevMessages) => [
+              ...prevMessages,
+              messageData.timestamp,
+            ]);
             console.log("Received message:", messageData.content);
           } else {
-            console.error("Received data does not contain expected structure:", messageData);
+            console.error(
+              "Received data does not contain expected structure:",
+              messageData
+            );
           }
         } catch (error) {
           console.error("Error parsing message data:", error);
         }
       };
-  
+
       newWs.onerror = (error) => {
         console.error("WebSocket error:", error);
       };
-  
+
       setWs(newWs);
-  
+
       return newWs;
     };
-  
+
     const webSocket = setupWebSocket();
-  
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         router.push("/index");
@@ -106,59 +138,12 @@ const Chat = () => {
         localStorage.setItem("idToken", token);
       }
     });
-  
+
     return () => {
       webSocket.close();
       unsubscribe();
     };
   }, [router, workspaceId, channelId, backendUrl, auth]);
-  
-  // useEffect(() => {
-  //   const newWs = new WebSocket(
-  //     `${backendUrl}/ws?workspaceID=${workspaceId}&channelID=${channelId}`
-  //   );
-  //   newWs.onopen = () => {
-  //     console.log("WebSocket connection established");
-  //     console.log(
-  //       "workspaceId!:",
-  //       `${backendUrl}/ws?workspaceID=${workspaceId}&channelID=${channelId}`
-  //     );
-  //   };
-
-  //   newWs.onmessage = (event) => {
-  //     try {
-  //       const messageData = JSON.parse(event.data);
-  //       console.log("Parsed message data:", messageData);
-  //       if (messageData.Content) {
-  //         setMessages((prev) => [...prev, messageData.Content]);
-  //         console.log("Received message:", messageData.Content);
-  //       } else {
-  //         console.error(
-  //           "Received data does not contain 'Content' key:",
-  //           messageData
-  //         );
-  //       }
-  //     } catch (error) {
-  //       console.error("Error parsing message data:", error);
-  //     }
-  //   };
-
-  //   setWs(newWs);
-
-  //   const unsubscribe = onAuthStateChanged(auth, async (user) => {
-  //     if (!user) {
-  //       router.push("/index");
-  //     } else {
-  //       const token = await getIdToken(user);
-  //       localStorage.setItem("idToken", token);
-  //     }
-  //   });
-
-  //   return () => {
-  //     newWs.close();
-  //     unsubscribe();
-  //   };
-  // }, [router, workspaceId, channelId]);
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
@@ -220,14 +205,21 @@ const Chat = () => {
           height="60vh"
           overflowY="auto"
           alignItems={"center"}
+          width={500}
         >
           <List spacing={3}>
             {messages.length === 0 && (
               <ListItem fontStyle="italic">No messages yet</ListItem>
             )}
             {messages.map((msg, index) => (
-              <ListItem key={index} p={3} borderRadius="md" boxShadow="sm">
-                <Text>{msg}</Text>
+              <ListItem key={index} p={3} borderRadius="md">
+                <HStack>
+                  <Abemakun />
+                  <Text>{msg}</Text>
+                  <Text fontSize="8px" color="gray.500">
+                    {timeStamp[index]}
+                  </Text>
+                </HStack>
               </ListItem>
             ))}
           </List>
