@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
 import {
   onAuthStateChanged,
@@ -10,6 +10,7 @@ import { auth } from "./firebaseConfig";
 
 const useAuth = () => {
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -31,13 +32,14 @@ const useAuth = () => {
       const user = result.user;
       const token = await getIdToken(user);
       localStorage.setItem("token", token);
+      setCurrentUser(user);
       router.push("/workspace");
     } catch (error) {
       console.error("Google sign in error:", error);
     }
   }, [router]);
 
-  return { signInWithGoogle };
+  return { currentUser, signInWithGoogle };
 };
 
 export default useAuth;

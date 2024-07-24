@@ -11,6 +11,7 @@ type AuthUsecase interface {
 	SignIn(ctx context.Context, email, password string) (*firebase.SignInResponse, error)
 	SignUp(ctx context.Context, email, password string) (*firebase.SignUpResponse, error)
 	VerifyToken(ctx context.Context, token string) (*firebase.VerifyTokenResponse, error)
+	GetUser(ctx context.Context, uid string) (*firebase.UserRecord, error)
 }
 
 type authUsecase struct {
@@ -49,4 +50,11 @@ func (uc *authUsecase) VerifyToken(ctx context.Context, token string) (*firebase
 	}
 
 	return response, nil
+}
+func (uc *authUsecase) GetUser(ctx context.Context, uid string) (*firebase.UserRecord, error) {
+	user, err := uc.authClient.GetUser(ctx, uid)
+	if err != nil {
+		return nil, cerror.Wrap(err, "usecase", cerror.WithFirebaseCode())
+	}
+	return user, nil
 }

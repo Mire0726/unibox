@@ -74,7 +74,14 @@ func (h *MessageHandler) PostMessage(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
 	}
 
-	if err = h.MessageUsecase.CreateMessage(c.Request().Context(), authInfo.ID, channelID, workspaceID, req.Content); err != nil {
+	fmt.Println("authInfo: ", authInfo)
+
+	userRecord, err := h.AuthUsecase.GetUser(c.Request().Context(), authInfo.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get user")
+	}
+
+	if err = h.MessageUsecase.CreateMessage(c.Request().Context(), userRecord.Email, channelID, workspaceID, req.Content); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to post message")
 	}
 

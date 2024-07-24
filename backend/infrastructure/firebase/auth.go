@@ -24,6 +24,7 @@ type FirebaseAuth interface {
 	VerifyPasswordResetCode(ctx context.Context, oobCode string) (*VerifyPasswordResetCodeResponse, error)
 	ConfirmPasswordReset(ctx context.Context, oobCode, newPassword string) (*ConfirmPasswordResetResponse, error)
 	VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error)
+	GetUser(ctx context.Context, uid string) (*UserRecord, error)
 }
 
 type Error struct {
@@ -325,4 +326,22 @@ func (c *AuthClient) VerifyIDToken(ctx context.Context, idToken string) (*auth.T
 
 type VerifyTokenResponse struct {
 	ID string `json:"uid"`
+}
+
+type UserRecord struct {
+    UID   string `json:"uid"`
+    Email string `json:"email"`
+}
+
+func (c *AuthClient) GetUser(ctx context.Context, uid string) (*UserRecord, error) {
+    user, err := c.client.GetUser(ctx, uid)
+    if err != nil {
+        c.logger.Error("Failed to get user", log.Fstring("package", "firebase"), log.Ferror(err))
+        return nil, cerror.Wrap(err, "firebase", cerror.WithFirebaseCode())
+    }
+
+    return &UserRecord{
+        UID:   user.UID,
+        Email: user.Email,
+    }, nil
 }
