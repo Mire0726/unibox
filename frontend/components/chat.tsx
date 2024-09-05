@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { onAuthStateChanged, getIdToken } from "firebase/auth";
 import { auth } from "../firebase/auth";
-import { Abemakun } from "@openameba/spindle-ui/Icon";
+
 import {
   Box,
   VStack,
@@ -215,7 +215,6 @@ export const Chat = () => {
             {messages.map((msg, index) => (
               <ListItem key={index} p={3} borderRadius="md">
                 <HStack>
-                <Abemakun />
                 <Text fontSize="8px" color="gray.500">
                   {user[index]}
                 </Text>
