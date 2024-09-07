@@ -1,5 +1,6 @@
 .env
 frontend/.next/*
 frontend/node_modules
+frontend/.env.local
+frontend/firebase/firebaseConfig.tsx
 backend/ServiceAccount.json
-frontend/firebase/firebaseConfig.js
