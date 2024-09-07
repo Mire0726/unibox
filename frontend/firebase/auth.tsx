@@ -15,7 +15,7 @@ const useAuth = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        router.push("/index");
+        router.push("/");
       } else {
         const token = await getIdToken(user);
         localStorage.setItem("token", token);
