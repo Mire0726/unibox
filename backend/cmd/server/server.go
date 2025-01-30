@@ -4,13 +4,12 @@ import (
 	"context"
 	"net/http"
 	"time"
-
-	// "github.com/go-playground/locales/hub"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 
 	handler "github.com/Mire0726/unibox/backend/app/handlers"
 	"github.com/Mire0726/unibox/backend/app/usecase"
+	"github.com/Mire0726/unibox/backend/infrastructure/cache"
 	"github.com/Mire0726/unibox/backend/infrastructure/firebase"
 	"github.com/Mire0726/unibox/backend/infrastructure/mysql"
 	"github.com/Mire0726/unibox/backend/infrastructure/websocket"
@@ -22,7 +21,7 @@ func Serve(addr string) {
 	e := echo.New()
 	logger := log.New()
 
-	// e.Use(echomiddleware.Recover())
+	e.Use(echomiddleware.Recover())
 	e.Use(echomiddleware.Logger())
 
 	e.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
@@ -50,14 +49,24 @@ func Serve(addr string) {
 
 	hub := websocket.NewHub()
 	go hub.Run()
-
-	// e.GET("/ws", websocket.HandleWebSocketConnection)
-
 	messageRepo := mysql.NewMessageRepository(mysql.Conn)
 	messageUsecase := usecase.NewMessageUsecase(messageRepo, authUsecase, hub)
 	messageHandler := handler.NewMessageHandler(authUsecase, messageUsecase)
-	e.POST("/workspaces/:workspaceID/channels/:channelID/messages", messageHandler.PostMessage)
-	e.GET("/workspaces/:workspaceID/channels/:channelID/messages", messageHandler.ListMessages)
+
+	messageCache := cache.NewMessageCache()
+
+	e.POST("/workspaces/:workspaceID/channels/:channelID/messages", func(c echo.Context) error {
+		message := "新しいメッセージ"
+		messageCache.Set("someKey", message)
+		return messageHandler.PostMessage(c)
+	})
+
+	e.GET("/workspaces/:workspaceID/channels/:channelID/messages", func(c echo.Context) error {
+		if msg, found := messageCache.Get("someKey"); found {
+			return c.String(http.StatusOK, msg)
+		}
+		return messageHandler.ListMessages(c)
+	})
 
 	e.GET("/ws", websocket.HandleWebSocketConnection(hub, messageUsecase))
 	go startRealtimeUpdates(messageUsecase)
