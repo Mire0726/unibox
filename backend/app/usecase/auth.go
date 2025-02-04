@@ -51,6 +51,7 @@ func (uc *authUsecase) VerifyToken(ctx context.Context, token string) (*firebase
 
 	return response, nil
 }
+
 func (uc *authUsecase) GetUser(ctx context.Context, uid string) (*firebase.UserRecord, error) {
 	user, err := uc.authClient.GetUser(ctx, uid)
 	if err != nil {

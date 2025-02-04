@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/Mire0726/unibox/backend/cmd/server"
-	"github.com/Mire0726/unibox/backend/infrastructure/mysql"
+
 )
 
 func main() {

@@ -2,11 +2,9 @@ package usecase
 
 import (
 	"context"
-	"errors"
 
 	"github.com/Mire0726/unibox/backend/domain/model"
-	"github.com/Mire0726/unibox/backend/domain/repository"
-	"github.com/Mire0726/unibox/backend/pkg/log"
+	"github.com/Mire0726/unibox/backend/infrastructure/db/datastore"
 )
 
 type WorkspaceService interface {
@@ -14,37 +12,29 @@ type WorkspaceService interface {
 }
 
 type WorkspaceUsecase struct {
-	WorkspaceRepo repository.WorkspaceRepository
-	Auth          AuthUsecase
+	data datastore.Data
+	Auth AuthUsecase
 }
 
-func NewWorkspaceUsecase(workspaceRepo repository.WorkspaceRepository, authUsecase AuthUsecase) *WorkspaceUsecase {
+func NewWorkspaceUsecase(data datastore.Data, authUsecase AuthUsecase) *WorkspaceUsecase {
 	return &WorkspaceUsecase{
-		WorkspaceRepo: workspaceRepo,
-		Auth:          authUsecase,
+		data: data,
+		Auth: authUsecase,
 	}
 }
 
-func (uc *WorkspaceUsecase) CreateWorkspace(ctx context.Context, userID string, workspace *model.Workspace) error {
-	if uc.WorkspaceRepo == nil {
-		log.Error("WorkspaceRepo is not initialized")
-		return errors.New("internal server error")
-	}
+func (uc *WorkspaceUsecase) CreateWorkspace(ctx context.Context, workspace *model.Workspace) error {
 
-	if err := uc.WorkspaceRepo.Insert(ctx, userID, workspace); err != nil {
+	workspace, err := uc.data.ReadWriteStore().Workspace().Create(ctx, workspace)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (uc *WorkspaceUsecase) SignInWorkspace(ctx context.Context, userID string, workspaceID, password string) (*model.Workspace, error) {
-	if uc.WorkspaceRepo == nil {
-		log.Error("WorkspaceRepo is not initialized")
-		return nil, errors.New("internal server error")
-	}
-
-	workspace, err := uc.WorkspaceRepo.FindByID(ctx, workspaceID, password)
+func (uc *WorkspaceUsecase) SignInWorkspace(ctx context.Context,workspaceID, password string) (*model.Workspace, error) {
+	workspace, err := uc.data.ReadWriteStore().Workspace().GetByID(ctx, workspaceID, password)
 	if err != nil {
 		return nil, err
 	}

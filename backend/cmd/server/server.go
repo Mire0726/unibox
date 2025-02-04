@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"time"
+
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 
@@ -40,48 +41,41 @@ func Serve(addr string) {
 		logger.Error("Failed to initialize firebase client")
 		return
 	}
-
 	authUsecase := usecase.NewAuthUsecase(firebaseClient)
-
-	authHandler := handler.NewAuthHandler(authUsecase)
-	e.POST("/signIn", authHandler.SignIn)
-	e.POST("/signUp", authHandler.SignUp)
-
-	hub := websocket.NewHub()
-	go hub.Run()
+	channelRepo := mysql.NewChannelRepository(mysql.Conn)
+	channelUsecase := usecase.NewChannelUsecase(channelRepo, authUsecase)
+	workspaceRepo := mysql.NewWorkspaceRepository(mysql.Conn)
+	workspaceUsecase := usecase.NewWorkspaceUsecase(workspaceRepo, authUsecase)
 	messageRepo := mysql.NewMessageRepository(mysql.Conn)
-	messageUsecase := usecase.NewMessageUsecase(messageRepo, authUsecase, hub)
-	messageHandler := handler.NewMessageHandler(authUsecase, messageUsecase)
+	messageUsecase := usecase.NewMessageUsecase(messageRepo, authUsecase, hub.Hub)
 
+	hub := websocket.NewHubWrapper()
+	go hub.Run()
+	e.GET("/ws", websocket.HandleWebSocket(hub))
+
+	handler := handler.NewHandler(
+		authUsecase,
+		channelUsecase,
+		messageUsecase,
+		workspaceUsecase,
+	)
+	e.POST("/signIn", handler.SignIn)
+	e.POST("/signUp", handler.SignUp)
 	messageCache := cache.NewMessageCache()
-
 	e.POST("/workspaces/:workspaceID/channels/:channelID/messages", func(c echo.Context) error {
 		message := "新しいメッセージ"
 		messageCache.Set("someKey", message)
-		return messageHandler.PostMessage(c)
+		return handler.PostMessage(c)
 	})
-
 	e.GET("/workspaces/:workspaceID/channels/:channelID/messages", func(c echo.Context) error {
 		if msg, found := messageCache.Get("someKey"); found {
 			return c.String(http.StatusOK, msg)
 		}
-		return messageHandler.ListMessages(c)
+		return handler.ListMessages(c)
 	})
-
-	e.GET("/ws", websocket.HandleWebSocketConnection(hub, messageUsecase))
-	go startRealtimeUpdates(messageUsecase)
-
-	channelRepo := mysql.NewChannelRepository(mysql.Conn)
-	channelUsecase := usecase.NewChannelUsecase(channelRepo, authUsecase)
-
-	workspaceRepo := mysql.NewWorkspaceRepository(mysql.Conn)
-	workspaceUsecase := usecase.NewWorkspaceUsecase(workspaceRepo, authUsecase)
-	workspaceHandler := handler.NewWorkspaceHandler(authUsecase, workspaceUsecase)
-	e.POST("/workspaces", workspaceHandler.PostWorkspace)
-	e.POST("/workspaces/login", workspaceHandler.SighnInWorkspace)
-
-	channelHandler := handler.NewChannelHandler(authUsecase, channelUsecase)
-	e.POST("/channels", channelHandler.PostChannel)
+	e.POST("/workspaces", handler.PostWorkspace)
+	e.POST("/workspaces/login", handler.SighnInWorkspace)
+	e.POST("/channels", handler.PostChannel)
 
 	/* ===== サーバの起動 ===== */
 	logger.Info("Server running", log.Fstring("address", addr))

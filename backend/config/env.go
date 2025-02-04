@@ -6,7 +6,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-// Env is 環境変数
 type Env struct {
 	AppEnv             string `envconfig:"APP_ENV" default:"dev"`
 	DBHost             string `envconfig:"DB_HOST" default:"henpin_rdb"`

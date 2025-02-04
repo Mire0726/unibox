@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/Mire0726/unibox/backend/domain/model"
-	"github.com/Mire0726/unibox/backend/domain/repository"
+	"github.com/Mire0726/unibox/backend/infrastructure/db/datastore"
 	"github.com/Mire0726/unibox/backend/pkg/log"
 	"github.com/google/uuid"
 )
@@ -18,25 +18,20 @@ type Message interface {
 }
 
 type MessageUsecase struct {
-	MessageRepo repository.MessageRepository
-	Auth        AuthUsecase
-	Hub         *model.Hub
+	data datastore.Data
+	Auth AuthUsecase
+	Hub  *model.Hub
 }
 
-func NewMessageUsecase(messageRepo repository.MessageRepository, authUsecase AuthUsecase, hub *model.Hub) *MessageUsecase {
+func NewMessageUsecase(data datastore.Data, authUsecase AuthUsecase, hub *model.Hub) *MessageUsecase {
 	return &MessageUsecase{
-		MessageRepo: messageRepo,
-		Auth:        authUsecase,
-		Hub:         hub,
+		data: data,
+		Auth: authUsecase,
+		Hub:  hub,
 	}
 }
 
 func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID, workspaceID string, content string) error {
-	if uc.MessageRepo == nil {
-		log.Error("MessageRepo is not initialized")
-		return errors.New("internal server error")
-	}
-
 	if uc.Hub == nil {
 		log.Error("Hub is not initialized")
 		return errors.New("internal server error")
@@ -51,7 +46,8 @@ func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID, 
 		Timestamp:   time.Now(),
 	}
 
-	if err := uc.MessageRepo.Insert(ctx, message); err != nil {
+	message, err := uc.data.ReadWriteStore().Message().Create(ctx, message)
+	if err != nil {
 		return err
 	}
 
@@ -66,17 +62,12 @@ func (uc *MessageUsecase) CreateMessage(ctx context.Context, userID, channelID, 
 }
 
 func (uc *MessageUsecase) ListMessages(ctx context.Context, channelID, workspaceID string) ([]*model.Message, error) {
-	if uc.MessageRepo == nil {
-		log.Error("MessageRepo is not initialized")
-		return nil, errors.New("internal server error")
-	}
-
 	if uc.Hub == nil {
 		log.Error("Hub is not initialized")
 		return nil, errors.New("internal server error")
 	}
 
-	messages, err := uc.MessageRepo.ListByWorkspaceID(ctx, channelID, workspaceID)
+	messages, err := uc.data.ReadWriteStore().Message().ListByWorkspaceID(ctx, channelID, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +90,7 @@ func (uc *MessageUsecase) StartRealtimeUpdates(channelID, workspaceID string, in
 	for {
 		select {
 		case <-ticker.C:
-			messages, err := uc.MessageRepo.GetMessagesSince(context.Background(), channelID, workspaceID, lastCheck)
+			messages, err := uc.data.ReadWriteStore().Message().GetMessagesSince(context.Background(), channelID, workspaceID, lastCheck)
 			if err != nil {
 				continue
 			}
@@ -107,7 +98,6 @@ func (uc *MessageUsecase) StartRealtimeUpdates(channelID, workspaceID string, in
 				for _, msg := range messages {
 					messageData, err := json.Marshal(msg)
 					if err != nil {
-
 						continue
 					}
 					uc.Hub.Broadcast <- messageData

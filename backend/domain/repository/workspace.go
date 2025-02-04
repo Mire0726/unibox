@@ -7,14 +7,6 @@ import (
 )
 
 type WorkspaceRepository interface {
-	Insert(ctx context.Context, userID string, workspace *model.Workspace) error
-	FindByID(ctx context.Context, workspaceID, password string) (*model.Workspace, error)
-}
-
-type WorkspaceService struct {
-	repo WorkspaceRepository
-}
-
-func NewWorkspaceService(repo WorkspaceRepository) *WorkspaceService {
-	return &WorkspaceService{repo: repo}
+	Create(ctx context.Context, workspace *model.Workspace) (*model.Workspace, error)
+	GetByID(ctx context.Context, workspaceID, password string) (*model.Workspace, error)
 }

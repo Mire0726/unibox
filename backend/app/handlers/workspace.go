@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -48,7 +49,9 @@ func (h *WorkspaceHandler) PostWorkspace(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
 	}
 
-	if err = h.WorkspaceUsecase.CreateWorkspace(c.Request().Context(), authInfo.ID, &model.Workspace{
+	fmt.Println("authInfo: ", authInfo)
+
+	if err = h.WorkspaceUsecase.CreateWorkspace(c.Request().Context(), &model.Workspace{
 		ID:       uuid.New(),
 		Name:     req.Name,
 		Password: req.Password,
@@ -80,7 +83,9 @@ func (h *WorkspaceHandler) SighnInWorkspace(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized - Invalid token")
 	}
 
-	workspaces, err := h.WorkspaceUsecase.SignInWorkspace(c.Request().Context(), authInfo.ID, req.ID, req.Password)
+	fmt.Println("authInfo: ", authInfo)
+
+	workspaces, err := h.WorkspaceUsecase.SignInWorkspace(c.Request().Context(), req.ID, req.Password)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
 	}

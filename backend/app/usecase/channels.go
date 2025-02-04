@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/Mire0726/unibox/backend/domain/model"
-	"github.com/Mire0726/unibox/backend/domain/repository"
+	"github.com/Mire0726/unibox/backend/infrastructure/db/datastore"
 )
 
 type Channel interface {
@@ -14,14 +14,14 @@ type Channel interface {
 }
 
 type ChannelUsecase struct {
-	channelRepo repository.ChannelRepository
-	auth        AuthUsecase
+	data datastore.Data
+	auth AuthUsecase
 }
 
-func NewChannelUsecase(channelRepo repository.ChannelRepository, authUsecase AuthUsecase) *ChannelUsecase {
+func NewChannelUsecase(data datastore.Data, authUsecase AuthUsecase) *ChannelUsecase {
 	return &ChannelUsecase{
-		channelRepo: channelRepo,
-		auth:        authUsecase,
+		data: data,
+		auth: authUsecase,
 	}
 }
 
@@ -31,7 +31,7 @@ func (uc *ChannelUsecase) Post(ctx context.Context, userID, organizationID, name
 		ID:             uuid.New(),
 		Name:           name,
 	}
-	if err := uc.channelRepo.Insert(ctx, channel); err != nil {
+	if err := uc.data.ReadWriteStore.Channel().Create(ctx, channel); err != nil {
 		return err
 	}
 
